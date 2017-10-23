@@ -154,6 +154,8 @@ namespace pGameBoy
 
         public void WriteSaveFile()
         {
+            if (!cartBattery) return;
+
             BinaryWriter _writer = new BinaryWriter(File.Open(saveFilename, FileMode.Create));
             for(int i = 0; i < saveRAM.Length - 1; i++)
             {
