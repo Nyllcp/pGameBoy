@@ -35,12 +35,13 @@ namespace pGameBoy
         private byte keydata2 = 0xF;
         
 
-        private byte ie; //interupt enable
-        private byte iflag; //Interuptflag
+        private byte ie; //Interrupt enable
+        private byte iflag; //Interruptflag
 
         private int timer_clockcount;
         private int lastcycles;
-        //interupt constants
+
+        //Interrupt constants
         const byte vblank_const = 0x01, LCDC_const = 0x02, Timeroverflow_const = 0x04, Serial_const = 0x08, negativeedge_const = 0x10;
 
 
@@ -168,7 +169,7 @@ namespace pGameBoy
         public void MachineCycle()
         {
             lastcycles = _cpu.Cycles;
-            HandleInterupt();
+            HandleInterrupt();
             _cpu.Cycle();
 
             for (int i = 0; i < _cpu.Cycles - lastcycles; i++)
@@ -351,13 +352,13 @@ namespace pGameBoy
                 div_clockcount = 0;
             }
         }
-        private void HandleInterupt()
+        private void HandleInterrupt()
         {
             if ((iflag & ie) != 0)
             {
                 _cpu.Halt = false;
             }
-            if (_cpu.InteruptsEnabled)
+            if (_cpu.InterruptsEnabled)
             {
                 if ((iflag & vblank_const) != 0 && (ie & vblank_const) != 0)
                 {

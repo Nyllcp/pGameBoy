@@ -49,7 +49,7 @@ namespace pGameBoy
 
 
         public int Cycles { get { return cycles; } }
-        public bool InteruptsEnabled { get { return interuptsenabled; } }
+        public bool InterruptsEnabled { get { return interruptsenabled; } }
         public bool Halt { get { return halt; } set { halt = value; } }
 
         const byte zeroflag = 0x80;
@@ -60,7 +60,7 @@ namespace pGameBoy
         //bool
         private bool halt = false;
         private bool stop = false;
-        private bool interuptsenabled = false;
+        private bool interruptsenabled = false;
 
 
         public Cpu(Core core)
@@ -78,7 +78,7 @@ namespace pGameBoy
         public void Interrupt(ushort interruptvector)
         {
             cycles += 20;
-            interuptsenabled = false;
+            interruptsenabled = false;
             Push_PC();
             SetReg(Registers.PC, interruptvector);
         }
@@ -91,7 +91,7 @@ namespace pGameBoy
             pc = 0x0100;
             sp = 0xFFFE;
             cycles = 0;
-            interuptsenabled = false;
+            interruptsenabled = false;
         }
         private ushort Imm8bitvalue()
         {
@@ -536,16 +536,16 @@ namespace pGameBoy
                     var temp = Imm8bitvalue();
                     stop = true;
                     break;
-                //Interupt enable and disable, should happen after next instruction
+                //Interrupt enable and disable, should happen after next instruction
                 //Disable
                 case 0xF3:
                     cycles += 4;
-                    interuptsenabled = false;
+                    interruptsenabled = false;
                     break;
                 //Enable
                 case 0xFB:
                     cycles += 4;
-                    interuptsenabled = true;
+                    interruptsenabled = true;
                     break;
                 //RLCA
                 case 0x07: RLCA(); break;
@@ -1553,9 +1553,9 @@ namespace pGameBoy
 
             SetReg(Registers.PC, temp);
         }
-        private void Reti() //pop two bytes from stack & jump, enable interupt.
+        private void Reti() //pop two bytes from stack & jump, enable interrupt.
         {
-            interuptsenabled = true;
+            interruptsenabled = true;
             Ret();
         }
         private void Push_PC() //Push pc to stack
