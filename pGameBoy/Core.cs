@@ -16,8 +16,8 @@ namespace pGameBoy
         
 
         private byte p1; //Joypad
-        private byte div; // divider register
-        private ushort tima; //Timer counter
+        private ushort div; // divider register
+        private byte tima; //Timer counter
         private byte tma; //Timer modulo
         private byte tac; //Timer Control
         
@@ -29,16 +29,14 @@ namespace pGameBoy
         
         private byte serialdata;
         private byte serialreg;
-        private ushort div_clockcount;
         private byte[] ioregisters = new byte[0x100];
         private byte keydata1 = 0xF;
         private byte keydata2 = 0xF;
         
 
-        private byte ie; //Interrupt enable
-        private byte iflag; //Interruptflag
+        private byte ie = 0xE0; //Interrupt enable
+        private byte iflag = 0xE0; //Interruptflag
 
-        private int timer_clockcount;
         private int lastcycles;
 
         //Interrupt constants
@@ -178,6 +176,7 @@ namespace pGameBoy
                 Timer();
                 _apu.ApuTick();
             }
+            
         }
         public byte ReadIO(ushort address)
         {
@@ -190,8 +189,8 @@ namespace pGameBoy
                 case 0x00: return p1;
                 case 0x01: return serialdata; //Serial transder data cba
                 case 0x02: return serialreg; //Serial transfer bs cba
-                case 0x04: return div;
-                case 0x05: return (byte)tima;
+                case 0x04: return (byte)(div >>8);
+                case 0x05: return tima;
                 case 0x06: return tma;
                 case 0x07: return tac;
                 case 0x0F: return iflag;
@@ -231,11 +230,10 @@ namespace pGameBoy
                 case 0x05: tima = data; break;
                 case 0x06: tma = data; break;
                 case 0x07: tac = data; break;
-                case 0x0F:
-                    byte temp = (byte)(0xE0 | (data & 0x1f));
-                    iflag = temp;
-                    break;
+                case 0x0F: iflag = (byte)(0xE0 | (data & 0x1f)); break;
+                     
                 //Soundshit goes here
+
                 case 0x40: _lcd.WriteLcdRegister(address, data); break;
                 case 0x41: _lcd.WriteLcdRegister(address, data); break;
                 case 0x42: _lcd.WriteLcdRegister(address, data); break;
@@ -254,7 +252,8 @@ namespace pGameBoy
                 case 0x49: _lcd.WriteLcdRegister(address, data); break;
                 case 0x4A: _lcd.WriteLcdRegister(address, data); break;
                 case 0x4B: _lcd.WriteLcdRegister(address, data); break;
-                case 0xFF: ie = data; break;
+                case 0xFF: ie = (byte)(0xE0 | (data & 0x1f)); break;
+
 
                 default: break;
             }
@@ -326,30 +325,50 @@ namespace pGameBoy
         private void Timer()
         {
 
-            div_clockcount++;
+            div++;
             if ((tac & 0x04) != 0)
-            {
-                timer_clockcount++;
+            {   
                 switch (tac & 0x03)
                 {
-                    case 0: if (timer_clockcount >= 1024) { tima++; timer_clockcount = 0; } break;
-                    case 1: if (timer_clockcount >= 16) { tima++; timer_clockcount = 0; } break;
-                    case 2: if (timer_clockcount >= 64) { tima++; timer_clockcount = 0; } break;
-                    case 3: if (timer_clockcount >= 256) { tima++; timer_clockcount = 0; } break;
+                    case 0: if ((div & 1023) == 0)
+                        {
+                            if(++tima == 0)
+                            {
+                                tima = tma;
+                                iflag |= Timeroverflow_const;
+                            }
+                        }
+                        break;
+                    case 1: if ((div & 15) == 0)
+                        {
+                            if (++tima == 0)
+                            {
+                                tima = tma;
+                                iflag |= Timeroverflow_const;
+                            }
+                        }
+                        break;
+                    case 2: if ((div & 63) == 0)
+                        {
+                            if (++tima == 0)
+                            {
+                                tima = tma;
+                                iflag |= Timeroverflow_const;
+                            }
+                        }
+                        break;
+                    case 3: if ((div & 255) == 0)
+                        {
+                            if (++tima == 0)
+                            {
+                                tima = tma;
+                                iflag |= Timeroverflow_const;
+                            }
+                        }
+                        break;
 
                 }
 
-            }
-            if (tima > 255)
-            {
-                timer_clockcount = 0;
-                tima = tma;
-                iflag |= Timeroverflow_const;
-            }
-            if (div_clockcount > 255)
-            {
-                div++;
-                div_clockcount = 0;
             }
         }
         private void HandleInterrupt()

@@ -35,16 +35,16 @@
             this.toggleFramelimitToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.resetToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.pauseToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.smoothTextureToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.statusStrip = new System.Windows.Forms.StatusStrip();
-            this.toolStripStatusRomName = new System.Windows.Forms.ToolStripStatusLabel();
-            this.toolStripStatusFps = new System.Windows.Forms.ToolStripStatusLabel();
             this.xToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.xToolStripMenuItem1 = new System.Windows.Forms.ToolStripMenuItem();
             this.xToolStripMenuItem2 = new System.Windows.Forms.ToolStripMenuItem();
             this.xToolStripMenuItem3 = new System.Windows.Forms.ToolStripMenuItem();
             this.xToolStripMenuItem4 = new System.Windows.Forms.ToolStripMenuItem();
             this.xToolStripMenuItem5 = new System.Windows.Forms.ToolStripMenuItem();
+            this.smoothTextureToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.statusStrip = new System.Windows.Forms.StatusStrip();
+            this.toolStripStatusRomName = new System.Windows.Forms.ToolStripStatusLabel();
+            this.toolStripStatusFps = new System.Windows.Forms.ToolStripStatusLabel();
             this.menuStrip.SuspendLayout();
             this.statusStrip.SuspendLayout();
             this.SuspendLayout();
@@ -113,6 +113,43 @@
             this.pauseToolStripMenuItem.Size = new System.Drawing.Size(57, 20);
             this.pauseToolStripMenuItem.Text = "Scaling";
             // 
+            // xToolStripMenuItem
+            // 
+            this.xToolStripMenuItem.Name = "xToolStripMenuItem";
+            this.xToolStripMenuItem.Size = new System.Drawing.Size(85, 22);
+            this.xToolStripMenuItem.Text = "1x";
+            this.xToolStripMenuItem.Click += new System.EventHandler(this.xToolStripMenuItem_Click);
+            // 
+            // xToolStripMenuItem1
+            // 
+            this.xToolStripMenuItem1.Name = "xToolStripMenuItem1";
+            this.xToolStripMenuItem1.Size = new System.Drawing.Size(85, 22);
+            this.xToolStripMenuItem1.Text = "2x";
+            // 
+            // xToolStripMenuItem2
+            // 
+            this.xToolStripMenuItem2.Name = "xToolStripMenuItem2";
+            this.xToolStripMenuItem2.Size = new System.Drawing.Size(85, 22);
+            this.xToolStripMenuItem2.Text = "3x";
+            // 
+            // xToolStripMenuItem3
+            // 
+            this.xToolStripMenuItem3.Name = "xToolStripMenuItem3";
+            this.xToolStripMenuItem3.Size = new System.Drawing.Size(85, 22);
+            this.xToolStripMenuItem3.Text = "4x";
+            // 
+            // xToolStripMenuItem4
+            // 
+            this.xToolStripMenuItem4.Name = "xToolStripMenuItem4";
+            this.xToolStripMenuItem4.Size = new System.Drawing.Size(85, 22);
+            this.xToolStripMenuItem4.Text = "5x";
+            // 
+            // xToolStripMenuItem5
+            // 
+            this.xToolStripMenuItem5.Name = "xToolStripMenuItem5";
+            this.xToolStripMenuItem5.Size = new System.Drawing.Size(85, 22);
+            this.xToolStripMenuItem5.Text = "6x";
+            // 
             // smoothTextureToolStripMenuItem
             // 
             this.smoothTextureToolStripMenuItem.Name = "smoothTextureToolStripMenuItem";
@@ -140,47 +177,10 @@
             // toolStripStatusFps
             // 
             this.toolStripStatusFps.Name = "toolStripStatusFps";
-            this.toolStripStatusFps.Size = new System.Drawing.Size(598, 17);
+            this.toolStripStatusFps.Size = new System.Drawing.Size(629, 17);
             this.toolStripStatusFps.Spring = true;
             this.toolStripStatusFps.Text = "Fps: ";
             this.toolStripStatusFps.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
-            // 
-            // xToolStripMenuItem
-            // 
-            this.xToolStripMenuItem.Name = "xToolStripMenuItem";
-            this.xToolStripMenuItem.Size = new System.Drawing.Size(152, 22);
-            this.xToolStripMenuItem.Text = "1x";
-            this.xToolStripMenuItem.Click += new System.EventHandler(this.xToolStripMenuItem_Click);
-            // 
-            // xToolStripMenuItem1
-            // 
-            this.xToolStripMenuItem1.Name = "xToolStripMenuItem1";
-            this.xToolStripMenuItem1.Size = new System.Drawing.Size(152, 22);
-            this.xToolStripMenuItem1.Text = "2x";
-            // 
-            // xToolStripMenuItem2
-            // 
-            this.xToolStripMenuItem2.Name = "xToolStripMenuItem2";
-            this.xToolStripMenuItem2.Size = new System.Drawing.Size(152, 22);
-            this.xToolStripMenuItem2.Text = "3x";
-            // 
-            // xToolStripMenuItem3
-            // 
-            this.xToolStripMenuItem3.Name = "xToolStripMenuItem3";
-            this.xToolStripMenuItem3.Size = new System.Drawing.Size(152, 22);
-            this.xToolStripMenuItem3.Text = "4x";
-            // 
-            // xToolStripMenuItem4
-            // 
-            this.xToolStripMenuItem4.Name = "xToolStripMenuItem4";
-            this.xToolStripMenuItem4.Size = new System.Drawing.Size(152, 22);
-            this.xToolStripMenuItem4.Text = "5x";
-            // 
-            // xToolStripMenuItem5
-            // 
-            this.xToolStripMenuItem5.Name = "xToolStripMenuItem5";
-            this.xToolStripMenuItem5.Size = new System.Drawing.Size(152, 22);
-            this.xToolStripMenuItem5.Text = "6x";
             // 
             // Main
             // 
@@ -193,6 +193,7 @@
             this.MainMenuStrip = this.menuStrip;
             this.Name = "Main";
             this.Text = "pGameBoy";
+            this.FormClosed += new System.Windows.Forms.FormClosedEventHandler(this.Main_FormClosed);
             this.Load += new System.EventHandler(this.Main_Load);
             this.menuStrip.ResumeLayout(false);
             this.menuStrip.PerformLayout();

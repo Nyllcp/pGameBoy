@@ -19,7 +19,7 @@ namespace pGameBoy
         private byte cartType;
         private byte romSize;
         private byte ramSize;
-        private byte bankNo;
+        private int bankNo;
         private bool ramMode;
         private bool enableCartRAM;
         private int romOffset = 0x4000;
@@ -28,9 +28,14 @@ namespace pGameBoy
 
         //Bools for cart types
         private bool cartMbc1 = false;
+        private bool cartMbc2 = false;
+        private bool cartMbc3 = false;
+        private bool cartMbc5 = false;
         private bool cartRam = false;
         private bool cartBattery = false;
-        private bool cartMbc2 = false;
+        private bool cartTimer = false;
+        private bool timerRegEnabled = false;
+        
 
         private string currentRomName;
         private string saveFilename;
@@ -94,6 +99,14 @@ namespace pGameBoy
                 case 0x06: cartMbc2 = true; cartBattery = true; break;
                 case 0x08: cartRam = true; break;
                 case 0x09: cartRam = true; cartBattery = true; break;
+                case 0x0F: cartMbc3 = true; cartTimer = true; cartBattery = true;break;
+                case 0x10: cartMbc3 = true; cartTimer = true; cartBattery = true; cartRam = true; break;
+                case 0x11: cartMbc3 = true; break;
+                case 0x12: cartMbc3 = true; cartRam = true; break;
+                case 0x13: cartMbc3 = true; cartRam = true; cartBattery = true; break;
+                case 0x19: cartMbc5 = true; break;
+                case 0x1A: cartMbc5 = true; cartRam = true; break;
+                case 0x1B: cartMbc5 = true; cartRam = true; cartBattery = true; break;
 
 
                 default: Console.WriteLine("Unsupported Cartridge Type: " + cartType); _reader.Close(); return false;
@@ -104,6 +117,7 @@ namespace pGameBoy
             prgRomSize = (0x8000) << romSize;
             prgROM = new byte[prgRomSize];
             if(ramSize != 0 )saveRAM = new byte[SaveSize[ramSize - 1]];
+            if(cartMbc5) saveRAM = new byte[0x2000];
             for (int i = 0; i < prgRomSize; i++)
             {
                 prgROM[i] = _reader.ReadByte();
@@ -199,29 +213,80 @@ namespace pGameBoy
                     romOffset = bankNo * 0x4000;
                     romOffset &= prgROM.Length - 1;
                 }
+                if(cartMbc3)
+                {
+                    data &= 0x7F;
+                    if (data == 0) { data = 1; }
+                    bankNo = data;
+                    romOffset = bankNo * 0x4000;
+                    romOffset &= prgROM.Length - 1;
+                }
+                if(cartMbc5)
+                {
+                    if(address < 0x3000)
+                    {
+                        bankNo = data;
+                        romOffset = bankNo * 0x4000;
+                        romOffset &= prgROM.Length - 1;
+                    }
+                    else
+                    {
+                        bankNo |= (data << 8);
+                        romOffset = bankNo * 0x4000;
+                        romOffset &= prgROM.Length - 1;
+                    }
+                }
             }
             else if (address < 0x6000)
             {
                 if (cartMbc1)
                 {
+                    
                     if (ramMode)
                     {
                         ramOffset = (data & 0x3) * 0x2000;
                         bankNo = (byte)(bankNo & 0x1F);
+                        romOffset = bankNo * 0x4000;
+                        romOffset &= prgROM.Length - 1;
                     }
                     else if (romSize > 0x04)
                     {
                         bankNo |= (byte)(((data & 0x3) << 5));
+                        if (cartMbc1 && bankNo == 0x20 || bankNo == 0x40 || bankNo == 0x60) bankNo += 1;
                         romOffset = bankNo * 0x4000;
                         romOffset &= prgROM.Length - 1;
                         ramOffset = 0;
                     }
+                    
                 }
+                if (cartMbc3)
+                {
+                    if((data & 0xC) > 0x7 && cartTimer)
+                    {
+                        timerRegEnabled = true;
+                        //Fix timershit for Mbc3
+                    }
+                    else
+                    {
+                        timerRegEnabled = false;
+                        ramOffset = (data & 0x3) * 0x2000;
+                    }
+                        
+                }
+                if(cartMbc5)
+                {
+
+                }
+                     
             }
             else if (address < 0x8000)
             {
                 if (cartMbc1)
                     ramMode = data != 0 ? true : false;
+                if (cartMbc3)
+                {
+                    //Add timer latch maybe?
+                }
             }
 
         }
@@ -230,17 +295,10 @@ namespace pGameBoy
         {
             if (enableCartRAM)
             {
-                if (cartBattery && cartRam)
+                if (timerRegEnabled)
                 {
-                    //if (address < 0xA1FF && _romoffset == 0)
-                    //{
-                    //    return _battery[address & 0x1ff];
-                    //}
-                    //else
-                    //{
-                    //    return _saveram[address & 0x1FFF + _ramoffset];
-                    //}
-                    return saveRAM[address & 0x1FFF + ramOffset];
+                    //Fix timershit for Mbc3
+                    return 0;
                 }
                 else if (cartRam)
                 {
@@ -257,19 +315,7 @@ namespace pGameBoy
         {
             if (enableCartRAM)
             {
-                if (cartBattery && cartRam)
-                {
-                    //if (address < 0xA1FF && _romoffset == 0)
-                    //{
-                    //    _battery[address & 0x1ff] = data;
-                    //}
-                    //else
-                    //{
-                    //    _saveram[address & 0x1FFF + _ramoffset] = data; 
-                    //}
-                    saveRAM[address & 0x1FFF + ramOffset] = data;
-                }
-                else if (cartRam)
+                if (cartRam)
                 {
                     saveRAM[address & 0x1FFF + ramOffset] = data;
                 }

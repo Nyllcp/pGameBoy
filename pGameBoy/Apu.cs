@@ -12,6 +12,7 @@ namespace pGameBoy
 
         const int SAMPLE_RATE = 44100;
         const int DMG_CPUFREQ = 4194304;
+        const int CGB_CPUFREQ = 8388608;
 
         private int soundCycles = 0;
         private int frameSequenceStep = 0;
@@ -46,7 +47,7 @@ namespace pGameBoy
         {
             
             if (NumberOfSamples * 2 > Samples.Length - 2) return;
-            int sample = HighPass((_waveChannel.Sample + _squareChannel2.Sample + _squareChannel1.Sample + _noiseChannel.Sample) << 9, sndEnabled);
+            int sample = HighPass((_waveChannel.Sample + _squareChannel2.Sample + _squareChannel1.Sample + _noiseChannel.Sample) << 8, sndEnabled);
             Samples[NumberOfSamples * 2 + 1] = (byte)((sample >> 8) & 0xFF);
             Samples[NumberOfSamples * 2] = (byte)(sample & 0xFF);
             NumberOfSamples++;

@@ -140,7 +140,7 @@ namespace pGameBoy
                 {
                     _gameboy.MachineCycle();
                 }
-                UpdateFrame(_gameboy.Frambuffer, Palette.BGB);
+                UpdateFrame(_gameboy.Frambuffer, Palette.Zelda);
                 _texture.Update(_frame);
                 _window.Clear();
                 _window.Draw(_sprite);
@@ -259,6 +259,12 @@ namespace pGameBoy
         private void xToolStripMenuItem_Click(object sender, EventArgs e)
         {
 
+        }
+
+        private void Main_FormClosed(object sender, FormClosedEventArgs e)
+        {
+            run = false;
+            Application.Exit();
         }
     }
 }
