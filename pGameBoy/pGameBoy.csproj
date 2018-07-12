@@ -115,6 +115,7 @@
     <Compile Include="Cart.cs" />
     <Compile Include="Core.cs" />
     <Compile Include="Cpu.cs" />
+    <Compile Include="PPUgbc.cs" />
     <Compile Include="Lcd.cs" />
     <Compile Include="Main.cs">
       <SubType>Form</SubType>

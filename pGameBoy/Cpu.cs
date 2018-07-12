@@ -51,6 +51,7 @@ namespace pGameBoy
         public int Cycles { get { return cycles; } }
         public bool InterruptsEnabled { get { return interruptsenabled; } }
         public bool Halt { get { return halt; } set { halt = value; } }
+        public bool Stop { get { return stop; } set { stop = value; } }
 
         const byte zeroflag = 0x80;
         const byte subtractflag = 0x40;
@@ -61,6 +62,8 @@ namespace pGameBoy
         private bool halt = false;
         private bool stop = false;
         private bool interruptsenabled = false;
+
+
 
 
         public Cpu(Core core)

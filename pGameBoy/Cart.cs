@@ -27,6 +27,7 @@ namespace pGameBoy
         private int prgRomSize = 0;
 
         //Bools for cart types
+        private bool gbcRom = false;
         private bool cartMbc1 = false;
         private bool cartMbc2 = false;
         private bool cartMbc3 = false;
@@ -41,6 +42,7 @@ namespace pGameBoy
         private string saveFilename;
 
         public string CurrentRomName { get { return currentRomName; } }
+        public bool GbcRom { get { return gbcRom; } }
 
         private static readonly int[] SaveSize = new int[]
         {
@@ -64,7 +66,7 @@ namespace pGameBoy
                 {
                     foreach(var entry in _zip.Entries)
                     {
-                        if(Path.GetExtension(entry.Name) == ".gb")
+                        if(Path.GetExtension(entry.Name) == ".gb" || Path.GetExtension(entry.Name) == ".gbc")
                         {
                             using (var stream = entry.Open())
                             {
@@ -76,7 +78,7 @@ namespace pGameBoy
                     _reader = new BinaryReader(_ms);
                 }
             }
-            else if (Path.GetExtension(filename) == ".gb")
+            else if (Path.GetExtension(filename) == ".gb" ||Path.GetExtension(filename) == ".gbc")
             {
                 _reader = new BinaryReader(File.Open(filename, FileMode.Open));
             }          
@@ -155,6 +157,10 @@ namespace pGameBoy
                     currentRomName += Convert.ToChar(prgROM[i]);
                 }
                 
+            }
+            if(prgROM[0x143] ==0x80 || prgROM[0x143] == 0xC0)
+            {
+                gbcRom = true;
             }
 
             romOffset = 0x4000;

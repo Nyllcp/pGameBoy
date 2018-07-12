@@ -52,8 +52,8 @@ namespace pGameBoy
             InitSFML();
             _ofd = new OpenFileDialog();
             //ofd.InitialDirectory = Environment.CurrentDirectory;
-            _ofd.Filter = "txt files (*.txt)|*.txt|All files (*.*)|*.*";
-            _ofd.FilterIndex = 2;
+            _ofd.Filter = "Supported files (*.gb *.gbc *.zip)|*.gb;*.gbc;*.zip|All files (*.*)|*.*";
+            _ofd.FilterIndex = 1;
             _ofd.RestoreDirectory = true;
             
         }
@@ -140,7 +140,8 @@ namespace pGameBoy
                 {
                     _gameboy.MachineCycle();
                 }
-                UpdateFrame(_gameboy.Frambuffer, Palette.Zelda);
+                //UpdateFrame(_gameboy.Frambuffer, Palette.Zelda);
+                UpdateFrameRGB(_gameboy.FrambufferRGB);
                 _texture.Update(_frame);
                 _window.Clear();
                 _window.Draw(_sprite);
@@ -187,6 +188,16 @@ namespace pGameBoy
                 _frame[i * 4 + 1] = (byte)((pallete[gbFrame[i]] >> 8) & 0xFF);
                 _frame[i * 4 + 2] = (byte)((pallete[gbFrame[i]] >> 16) & 0xFF);
                 _frame[i * 4 + 3] = (byte)((pallete[gbFrame[i]] >> 24) & 0xFF);
+            }
+        }
+        private void UpdateFrameRGB(uint[] gbFrame)
+        {
+            for (int i = 0; i < gbFrame.Length; i++)
+            {
+                _frame[i * 4] = (byte)(gbFrame[i] & 0xFF);
+                _frame[i * 4 + 1] = (byte)((gbFrame[i] >> 8) & 0xFF);
+                _frame[i * 4 + 2] = (byte)((gbFrame[i] >> 16) & 0xFF);
+                _frame[i * 4 + 3] = (byte)((gbFrame[i] >> 24) & 0xFF);
             }
         }
 
