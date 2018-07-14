@@ -8,15 +8,25 @@ namespace pGameBoy
 {
     class Core
     {
-        
 
-        //private byte[] RAM = new byte[0x8000];
+        private Cart _cart;
+        private Cpu _cpu;
+        private PPU _ppu;
+        private Apu _apu;
+        private Savestate[] _saveStates = new Savestate[10];
+
+        //Interrupt constants
+        const byte vblank_const = 0x01, LCDC_const = 0x02, Timeroverflow_const = 0x04, Serial_const = 0x08, negativeedge_const = 0x10;
+
+        //SaveState
+        private bool saveState = false;
+        private bool loadState = false;
+        private int selectedSavestate = 0;
+
+        //RAM
         private byte[,] WRAM = new byte[8,0x1000];
-        //private byte[,] VRAM = new byte[2,0x2000];
-        //private byte[] VRAM = new byte[0x2000];
         private byte[] ZeroPage = new byte[0x80];
         private byte wramBankNo = 1;
-
         private byte p1; //Joypad
         private ushort div; // divider register
         private byte tima; //Timer counter
@@ -28,49 +38,37 @@ namespace pGameBoy
         private bool gbcMode = false;
         private bool doubleSpeed = false;
         private bool prepareSpeedSwitch = false;
-        
-        
-
-        
         private byte serialdata;
         private byte serialreg;
         private byte[] ioregisters = new byte[0x100];
         private byte keydata1 = 0xF;
         private byte keydata2 = 0xF;
-        
-
         private byte ie = 0xE0; //Interrupt enable
         private byte iflag = 0xE0; //Interruptflag
-
         private int lastcycles;
 
-        //Interrupt constants
-        const byte vblank_const = 0x01, LCDC_const = 0x02, Timeroverflow_const = 0x04, Serial_const = 0x08, negativeedge_const = 0x10;
 
-     
-        
-
-
-        private Cart _cart;
-        private Cpu _cpu;
-        private PPU _lcd;
-        private Apu _apu;
-
-        public bool Frameready { get { return _lcd.Frameready; } set { _lcd.Frameready = value; } }
-        public byte[] Frambuffer { get { _lcd.Frameready = false; return _lcd.Framebuffer; } }
-        public uint[] FrambufferRGB { get { _lcd.Frameready = false; return _lcd.FramebufferRGB; } }
+        public bool Frameready { get { return _ppu.Frameready; } set { _ppu.Frameready = value; } }
+        public uint[] FrambufferRGB { get { _ppu.Frameready = false; return _ppu.FramebufferRGB; } }
         public string CurrentRomName { get { return _cart.CurrentRomName; } }
         public int CpuCycles { get { return _cpu.Cycles; } }
         public byte[] GetSamples { get { return _apu.Samples; } }
         public int NumberOfSamples { get { int value = _apu.NumberOfSamples; _apu.NumberOfSamples = 0; return value; } }
         public bool GbcMode { get { return gbcMode; } set { gbcMode = value; } }
+        public bool SaveState { get { return saveState; } set { saveState = value; } }
+        public bool LoadState { get { return loadState; } set { loadState = value; } }
+        public int SelectedSavestate { get { return selectedSavestate; } set { selectedSavestate = value > 9 ? 9 : value; } }
 
         public Core()
         {
             _cart = new Cart();
             _cpu = new Cpu(this);
-            _lcd = new PPU(this);
+            _ppu = new PPU(this);
             _apu = new Apu();
+            for(int i = 0; i < _saveStates.Length; i ++)
+            {
+                _saveStates[i] = new Savestate();
+            }
         }
 
 
@@ -99,7 +97,7 @@ namespace pGameBoy
                 }
                 for (int i = 0; i < (_cpu.Cycles - lastcycles) / 2; i++)
                 {
-                    _lcd.LcdTick();
+                    _ppu.LcdTick();
                     _apu.ApuTick();
                 }
             }
@@ -110,10 +108,20 @@ namespace pGameBoy
 
                 for (int i = 0; i < _cpu.Cycles - lastcycles; i++)
                 {
-                    _lcd.LcdTick();
+                    _ppu.LcdTick();
                     Timer();
                     _apu.ApuTick();
                 }
+            }
+            if(saveState)
+            {
+                WriteSaveState(ref _saveStates[selectedSavestate]);
+                saveState = false;
+            }
+            if(loadState)
+            {
+                LoadSaveState(_saveStates[selectedSavestate]);
+                loadState = false;
             }
 
 
@@ -166,7 +174,7 @@ namespace pGameBoy
             }
             else if (address < 0xA000)
             {
-                return _lcd.ReadVram(address);
+                return _ppu.ReadVram(address);
             }
             else if (address < 0xC000)
             {
@@ -187,7 +195,7 @@ namespace pGameBoy
             }
             else if (address < 0xFF00)
             {
-                return _lcd.OAM[address & 0xFF];
+                return _ppu.OAM[address & 0xFF];
             }
             else if (address >= 0xFF00 && address < 0xFF80 || address == 0xFFFF)
             {
@@ -208,7 +216,7 @@ namespace pGameBoy
             }
             else if (address < 0xA000)
             {
-                _lcd.WriteVram(address, data);
+                _ppu.WriteVram(address, data);
             }
             else if (address < 0xC000)
             {
@@ -229,7 +237,7 @@ namespace pGameBoy
             }
             else if (address < 0xFF00)
             {
-                _lcd.OAM[address & 0xFF] = data;
+                _ppu.OAM[address & 0xFF] = data;
             }
             else if (address >= 0xFF00 && address < 0xFF80 || address == 0xFFFF)
             {
@@ -258,18 +266,18 @@ namespace pGameBoy
                 case 0x07: return tac;
                 case 0x0F: return iflag;
                 //soundshit goes here
-                case 0x40: return _lcd.ReadLcdRegister(address);
-                case 0x41: return _lcd.ReadLcdRegister(address);
-                case 0x42: return _lcd.ReadLcdRegister(address);
-                case 0x43: return _lcd.ReadLcdRegister(address);
-                case 0x44: return _lcd.ReadLcdRegister(address);
-                case 0x45: return _lcd.ReadLcdRegister(address);
+                case 0x40: return _ppu.ReadLcdRegister(address);
+                case 0x41: return _ppu.ReadLcdRegister(address);
+                case 0x42: return _ppu.ReadLcdRegister(address);
+                case 0x43: return _ppu.ReadLcdRegister(address);
+                case 0x44: return _ppu.ReadLcdRegister(address);
+                case 0x45: return _ppu.ReadLcdRegister(address);
                 case 0x46: return dma;
-                case 0x47: return _lcd.ReadLcdRegister(address);
-                case 0x48: return _lcd.ReadLcdRegister(address);
-                case 0x49: return _lcd.ReadLcdRegister(address);
-                case 0x4A: return _lcd.ReadLcdRegister(address);
-                case 0x4B: return _lcd.ReadLcdRegister(address);
+                case 0x47: return _ppu.ReadLcdRegister(address);
+                case 0x48: return _ppu.ReadLcdRegister(address);
+                case 0x49: return _ppu.ReadLcdRegister(address);
+                case 0x4A: return _ppu.ReadLcdRegister(address);
+                case 0x4B: return _ppu.ReadLcdRegister(address);
                 case 0x4D:
                         if(gbcMode)
                         {
@@ -279,17 +287,17 @@ namespace pGameBoy
                         }
                         return ioregisters[address & 0xFF];
                 case 0x4F:
-                    if (gbcMode) return _lcd.ReadLcdRegister(address);
+                    if (gbcMode) return _ppu.ReadLcdRegister(address);
                     return ioregisters[address & 0xFF];
-                case 0x51: return _lcd.ReadLcdRegister(address);
-                case 0x52: return _lcd.ReadLcdRegister(address);
-                case 0x53: return _lcd.ReadLcdRegister(address);
-                case 0x54: return _lcd.ReadLcdRegister(address);
-                case 0x55: return _lcd.ReadLcdRegister(address);
-                case 0x68: return _lcd.ReadLcdRegister(address);
-                case 0x69: return _lcd.ReadLcdRegister(address);
-                case 0x6A: return _lcd.ReadLcdRegister(address);
-                case 0x6B: return _lcd.ReadLcdRegister(address); 
+                case 0x51: return _ppu.ReadLcdRegister(address);
+                case 0x52: return _ppu.ReadLcdRegister(address);
+                case 0x53: return _ppu.ReadLcdRegister(address);
+                case 0x54: return _ppu.ReadLcdRegister(address);
+                case 0x55: return _ppu.ReadLcdRegister(address);
+                case 0x68: return _ppu.ReadLcdRegister(address);
+                case 0x69: return _ppu.ReadLcdRegister(address);
+                case 0x6A: return _ppu.ReadLcdRegister(address);
+                case 0x6B: return _ppu.ReadLcdRegister(address); 
                 case 0x70:
                         if (gbcMode)
                         {
@@ -329,12 +337,12 @@ namespace pGameBoy
                      
                 //Soundshit goes here
 
-                case 0x40: _lcd.WriteLcdRegister(address, data); break;
-                case 0x41: _lcd.WriteLcdRegister(address, data); break;
-                case 0x42: _lcd.WriteLcdRegister(address, data); break;
-                case 0x43: _lcd.WriteLcdRegister(address, data); break;
+                case 0x40: _ppu.WriteLcdRegister(address, data); break;
+                case 0x41: _ppu.WriteLcdRegister(address, data); break;
+                case 0x42: _ppu.WriteLcdRegister(address, data); break;
+                case 0x43: _ppu.WriteLcdRegister(address, data); break;
                 case 0x44: break;
-                case 0x45: _lcd.WriteLcdRegister(address, data); break;
+                case 0x45: _ppu.WriteLcdRegister(address, data); break;
                 case 0x46:
                     dma = data;
                     for (int i = 0; i < 0xA0; i++)
@@ -342,11 +350,11 @@ namespace pGameBoy
                         WriteMem((ushort)(0xFE00 + i), ReadMem((ushort)((dma << 8) + i)));
                     }
                     break;
-                case 0x47: _lcd.WriteLcdRegister(address, data); break;
-                case 0x48: _lcd.WriteLcdRegister(address, data); break;
-                case 0x49: _lcd.WriteLcdRegister(address, data); break;
-                case 0x4A: _lcd.WriteLcdRegister(address, data); break;
-                case 0x4B: _lcd.WriteLcdRegister(address, data); break;
+                case 0x47: _ppu.WriteLcdRegister(address, data); break;
+                case 0x48: _ppu.WriteLcdRegister(address, data); break;
+                case 0x49: _ppu.WriteLcdRegister(address, data); break;
+                case 0x4A: _ppu.WriteLcdRegister(address, data); break;
+                case 0x4B: _ppu.WriteLcdRegister(address, data); break;
                 case 0x4D:
                         if(gbcMode)
                         {
@@ -357,18 +365,18 @@ namespace pGameBoy
                 case 0x4F:
                     if (gbcMode)
                     {
-                        _lcd.WriteLcdRegister(address, data); 
+                        _ppu.WriteLcdRegister(address, data); 
                     }
                     break;
-                case 0x51: _lcd.WriteLcdRegister(address, data); break;
-                case 0x52: _lcd.WriteLcdRegister(address, data); break;
-                case 0x53: _lcd.WriteLcdRegister(address, data); break;
-                case 0x54: _lcd.WriteLcdRegister(address, data); break;
-                case 0x55: _lcd.WriteLcdRegister(address, data); break;
-                case 0x68: _lcd.WriteLcdRegister(address, data); break;
-                case 0x69: _lcd.WriteLcdRegister(address, data); break;
-                case 0x6A: _lcd.WriteLcdRegister(address, data); break;
-                case 0x6B: _lcd.WriteLcdRegister(address, data); break;
+                case 0x51: _ppu.WriteLcdRegister(address, data); break;
+                case 0x52: _ppu.WriteLcdRegister(address, data); break;
+                case 0x53: _ppu.WriteLcdRegister(address, data); break;
+                case 0x54: _ppu.WriteLcdRegister(address, data); break;
+                case 0x55: _ppu.WriteLcdRegister(address, data); break;
+                case 0x68: _ppu.WriteLcdRegister(address, data); break;
+                case 0x69: _ppu.WriteLcdRegister(address, data); break;
+                case 0x6A: _ppu.WriteLcdRegister(address, data); break;
+                case 0x6B: _ppu.WriteLcdRegister(address, data); break;
                 case 0x70:
                         if (gbcMode)
                         {
@@ -422,14 +430,14 @@ namespace pGameBoy
         public void Reset()
         {
             _cpu.ResetCpu();
-            _lcd.ResetLcd();
+            _ppu.ResetLcd();
             _apu.ResetApu();
             tima = 0;
             tma = 0;
             tac = 0;
             ie = 0xE0;
             iflag = 0xE0;
-
+            doubleSpeed = false;
             WRAM = new byte[8, 0x1000];     
             ZeroPage = new byte[0x80];
     }
@@ -521,6 +529,60 @@ namespace pGameBoy
                     _cpu.Interrupt(0x060);
                 }
             }
+        }
+        public Savestate WriteSaveState(ref Savestate state)
+        {
+            _cpu.WriteSaveState(ref state);
+            _ppu.WriteSaveState(ref state);
+            _apu.WriteSaveState(ref state);
+            Array.Copy(WRAM, state.WRAM, WRAM.Length);
+            Array.Copy(ZeroPage, state.ZeroPage, ZeroPage.Length);
+            Array.Copy(ioregisters, state.ioregisters, ioregisters.Length);
+            state.wramBankNo = wramBankNo;
+            state.p1 = p1;
+            state.div = div;
+            state.tima = tima;
+            state.tma = tma;
+            state.tac = tac;
+            state.dma = dma;
+            state.gbcMode = gbcMode;
+            state.doubleSpeed = doubleSpeed;
+            state.prepareSpeedSwitch = prepareSpeedSwitch;
+            state.serialdata = serialdata;
+            state.serialreg = serialreg;
+            state.keydata1 = 0xF;
+            state.keydata2 = 0xF;
+            state.ie = ie;
+            state.iflag = iflag;
+            state.lastcycles = lastcycles;
+            return state;
+        }
+
+        private void LoadSaveState(Savestate state)
+        {
+            _cpu.LoadSaveState(state);
+            _ppu.LoadSaveState(state);
+            _apu.LoadSaveState(state);
+            Array.Copy(state.WRAM, WRAM, WRAM.Length);
+            Array.Copy(state.ZeroPage, ZeroPage, ZeroPage.Length);
+            Array.Copy(state.ioregisters, ioregisters, ioregisters.Length);
+            wramBankNo = state.wramBankNo;
+            p1 = state.p1;
+            div = state.div;
+            tima = state.tima;
+            tma = state.tma;
+            tac = state.tac;
+            dma = state.dma;
+            gbcMode = state.gbcMode;
+            doubleSpeed = state.doubleSpeed;
+            prepareSpeedSwitch = state.prepareSpeedSwitch;
+            serialdata = state.serialdata;
+            serialreg = state.serialreg;
+            keydata1 = 0xF;
+            keydata2 = 0xF;
+            ie = state.ie;
+            iflag = state.iflag;
+            lastcycles = state.lastcycles;
         }
     }
 }

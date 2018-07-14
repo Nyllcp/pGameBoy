@@ -53,7 +53,6 @@ namespace pGameBoy
         private byte ly;  //Lcdc y coordinate
         private byte lyc; //Lycompare
         private byte lcdc; //lcdcontrol
-
         private byte bgp; //Pallette data, what shade of grey
         private byte obp0; //Object pallet data
         private byte obp1;//Object pallet data
@@ -76,37 +75,33 @@ namespace pGameBoy
         private int lcd_clockcount;
         private bool InVblank_interrupt;
 
-        private byte[] _framebuffer = new byte[160 * 144];
         private uint[] _framebufferRGB = new uint[160 * 144];
         private bool _frameready = false;
         private bool gbcMode = false;
 
-        private byte[] bgpallete = new byte[]
+        private byte[] bgPallete = new byte[]
         {
             0,
             1,
             2,
             3
         };
-        private byte[] obj0pallete = new byte[]
+        private byte[] obj0Pallete = new byte[]
         {
             0,
             1,
             2,
             3
         };
-        private byte[] obj1pallete = new byte[]
+        private byte[] obj1Pallete = new byte[]
         {
             0,
             1,
             2,
             3
-        };
-
-        
+        };  
 
         public byte[] OAM { get { return oamRam; } }
-        public byte[] Framebuffer { get { return _framebuffer; } }
         public uint[] FramebufferRGB { get { return _framebufferRGB; } }
         public bool Frameready { get { return _frameready; } set { _frameready = value; } }
 
@@ -248,9 +243,9 @@ namespace pGameBoy
                         var mask = ~0x03;
                         stat &= (byte)(mask);
                         lcd_clockcount = 0;
-                        for (int i = 0; i < _framebuffer.Length; i++)
+                        for (int i = 0; i < _framebufferRGB.Length; i++)
                         {
-                           _framebuffer[i] = 0;
+                            _framebufferRGB[i] = 0xFF000000;
                         }
                     }
                     else if (isscreenon == 0 && turnscreenon != 0)
@@ -270,9 +265,9 @@ namespace pGameBoy
                 case 0x43: scx = data; break;
                 case 0x44: break;
                 case 0x45: lyc = data; break;
-                case 0x47: bgp = data; UpdatePalette(ref bgpallete, bgp); break;
-                case 0x48: obp0 = data; UpdatePalette(ref obj0pallete, obp0); break;
-                case 0x49: obp1 = data; UpdatePalette(ref obj1pallete, obp1); break;
+                case 0x47: bgp = data; UpdatePalette(ref bgPallete, bgp); break;
+                case 0x48: obp0 = data; UpdatePalette(ref obj0Pallete, obp0); break;
+                case 0x49: obp1 = data; UpdatePalette(ref obj1Pallete, obp1); break;
                 case 0x4A: wy = data; break;
                 case 0x4B: wx = data; break;
                 case 0x4F: vramBankNo = (byte)(data & 1);break;
@@ -394,7 +389,7 @@ namespace pGameBoy
                     }
                     else
                     {
-                        scanlinebuffer[0, pixelplace] = bgpallete[pixel];
+                        scanlinebuffer[0, pixelplace] = bgPallete[pixel];
                     }
 
                 }
@@ -461,7 +456,7 @@ namespace pGameBoy
                         }
                         else
                         {
-                            scanlinebuffer[0, pixelplace] = bgpallete[pixel];
+                            scanlinebuffer[0, pixelplace] = bgPallete[pixel];
                         }
                     }
                 }
@@ -531,7 +526,7 @@ namespace pGameBoy
                                 }
                                 else
                                 {
-                                    if (priority && scanlinebuffer[0, pixelplace] != bgpallete[0]) { renderpixel = false; }
+                                    if (priority && scanlinebuffer[0, pixelplace] != bgPallete[0]) { renderpixel = false; }
                                 }
                                 if (renderpixel)
                                 {
@@ -543,7 +538,7 @@ namespace pGameBoy
                                     }
                                     else
                                     {
-                                        scanlinebuffer[0, pixelplace] = (flags & 0x10) == 0x10 ? obj1pallete[pixel] : obj0pallete[pixel];
+                                        scanlinebuffer[0, pixelplace] = (flags & 0x10) == 0x10 ? obj1Pallete[pixel] : obj0Pallete[pixel];
                                     }
 
                                 }
@@ -607,9 +602,9 @@ namespace pGameBoy
             wy = 0;
             wx = 0;
             gbcMode = _core.GbcMode;
-            for (int i = 0; i < _framebuffer.Length; i++)
+            for (int i = 0; i < _framebufferRGB.Length; i++)
             {
-                _framebuffer[i] = 0;
+                _framebufferRGB[i] = 0xFF000000;
             }
 
         }
@@ -695,6 +690,78 @@ namespace pGameBoy
                 return Palette.BGB[pixel];
             }
          
+        }
+
+        public void WriteSaveState(ref Savestate state)
+        {
+            Array.Copy(oamRam, state.oamRam, oamRam.Length);
+            Array.Copy(VRAM, state.VRAM, VRAM.Length);
+            Array.Copy(gbcBgPalette, state.gbcBgPalette, gbcBgPalette.Length);
+            Array.Copy(gbcObjPalette, state.gbcObjPalette, gbcObjPalette.Length);
+            Array.Copy(_framebufferRGB, state._framebufferRGB, _framebufferRGB.Length);
+
+            state.vramBankNo = vramBankNo;
+            state.stat = stat;
+            state.wy = wy;
+            state.wx = wx;
+            state.scy = scy;
+            state.scx = scx;
+            state.ly = ly;
+            state.lyc = lyc;
+            state.lcdc = lcdc;
+            state.bgp = bgp;
+            state.obp0 = obp0;
+            state.obp1 = obp1;
+            state.bgPaletteIndex = bgPaletteIndex;
+            state.objPaletteIndex = objPaletteIndex;
+            state.hdmaSourceHighByte = hdmaSourceHighByte;
+            state.hdmaSourceLowByte = hdmaSourceLowByte;
+            state.hdmaDestHighByte = hdmaDestHighByte;
+            state.hdmaDestLowByte = hdmaDestLowByte;
+            state.hdmaLenghtCounter = hdmaLenghtCounter;
+            state.hdmaDuringHblank = hdmaDuringHblank;
+            state.hdmaSource = hdmaSource;
+            state.hdmaDest = hdmaDest;
+            state.lcd_clockcount = lcd_clockcount;
+            state.InVblank_interrupt = InVblank_interrupt;
+            state._frameready = _frameready;
+        }
+        public void LoadSaveState(Savestate state)
+        {
+            Array.Copy(state.oamRam, oamRam, oamRam.Length);
+            Array.Copy(state.VRAM, VRAM, VRAM.Length);
+            Array.Copy(state.gbcBgPalette, gbcBgPalette, gbcBgPalette.Length);
+            Array.Copy(state.gbcObjPalette, gbcObjPalette, gbcObjPalette.Length);
+            Array.Copy(state._framebufferRGB, _framebufferRGB, _framebufferRGB.Length);
+         
+            vramBankNo = state.vramBankNo;
+            stat = state.stat;
+            wy = state.wy;
+            wx = state.wx;
+            scy = state.scy;
+            scx = state.scx;
+            ly = state.ly;
+            lyc = state.lyc;
+            lcdc = state.lcdc;
+            bgp =  state.bgp;
+            obp0 = state.obp0;
+            obp1 = state.obp1;
+            UpdatePalette(ref bgPallete, bgp);
+            UpdatePalette(ref obj0Pallete, obp0);
+            UpdatePalette(ref obj1Pallete, obp1);
+            bgPaletteIndex = state.bgPaletteIndex;
+            objPaletteIndex = state.objPaletteIndex;
+            hdmaSourceHighByte = state.hdmaSourceHighByte;
+            hdmaSourceLowByte = state.hdmaSourceLowByte;
+            hdmaDestHighByte = state.hdmaDestHighByte;
+            hdmaDestLowByte = state.hdmaDestLowByte;
+            hdmaLenghtCounter = state.hdmaLenghtCounter;
+            hdmaDuringHblank = state.hdmaDuringHblank;
+            hdmaSource = state.hdmaSource;
+            hdmaDest = state.hdmaDest;
+            lcd_clockcount = state.lcd_clockcount;
+            InVblank_interrupt = state.InVblank_interrupt;
+            _frameready = state._frameready;
         }
     }
 }

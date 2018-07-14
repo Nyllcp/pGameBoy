@@ -115,8 +115,7 @@
     <Compile Include="Cart.cs" />
     <Compile Include="Core.cs" />
     <Compile Include="Cpu.cs" />
-    <Compile Include="PPUgbc.cs" />
-    <Compile Include="Lcd.cs" />
+    <Compile Include="PPU.cs" />
     <Compile Include="Main.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -128,6 +127,7 @@
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Apu.cs" />
+    <Compile Include="Savestate.cs" />
     <Compile Include="SquareChannel.cs" />
     <Compile Include="WaveChannel.cs" />
     <EmbeddedResource Include="Main.resx">

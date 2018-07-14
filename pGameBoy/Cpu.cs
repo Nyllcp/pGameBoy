@@ -65,7 +65,6 @@ namespace pGameBoy
 
 
 
-
         public Cpu(Core core)
         {
             _core = core;
@@ -218,6 +217,41 @@ namespace pGameBoy
                 case Registers.PC: pc = value; break;
                 default: break;
             }
+        }
+
+        public void WriteSaveState(ref Savestate state)
+        {
+            state.cycles = cycles;
+            state.sp = sp;
+            state.pc = pc;
+            state.a = a;
+            state.b = b;
+            state.c = c;
+            state.d = d;
+            state.e = e;
+            state.f = f;
+            state.h = h;
+            state.l = l;
+            state.halt = halt;
+            state.stop = stop;
+            state.interruptsenabled = interruptsenabled;
+        }
+        public void LoadSaveState(Savestate state)
+        {
+            cycles = state.cycles;
+            sp = state.sp;
+            pc = state.pc;
+            a = state.a;
+            b = state.b;
+            c = state.c;
+            d = state.d;
+            e = state.e;
+            f = state.f;
+            h = state.h;
+            l = state.l;
+            halt = state.halt;
+            stop = state.stop;
+            interruptsenabled = state.interruptsenabled;
         }
 
 

@@ -39,14 +39,17 @@ namespace pGameBoy
         public bool EnvelopeAddMode = false;
         public byte EnvelopePeriod = 0;
         public bool LengthEnable = false;
+        public int CurrentDuty = 0;
+        public int Sample = 0;
         public int Frequency = 0;
+
         private bool SweepEnabled = false;
         private int ShadowFreq = 0;
         private int SweepStep = 0;
         private int Cycles = 0;
-        public int CurrentDuty = 0;
-        public int Sample = 0;
-        private int EnvelopeStep = 0;
+        private bool Envelope_enabled;
+
+  
 
 
         public SquareChannel()
@@ -112,14 +115,21 @@ namespace pGameBoy
 
         public void EnvelopeTick()
         {
-            if (EnvelopePeriod == 0 || StartingVolume == 0 && EnvelopeAddMode == false || StartingVolume == 15 && EnvelopeAddMode == true) return;
-            EnvelopeStep++;
-            if(EnvelopeStep >= EnvelopePeriod)
+
+            if (EnvelopePeriod == 0) return;
+            if (Envelope_enabled && --EnvelopePeriod == 0)
             {
-                StartingVolume = (byte)(EnvelopeAddMode == true ? StartingVolume + 1 : StartingVolume - 1);
-                EnvelopeStep = 0;
-                //Reg2 &= 0xF;
-                //Reg2 |= (byte)(StartingVolume << 4);          
+                EnvelopePeriod = (byte)(Reg2 & 0x7);
+                int new_vol = (byte)(EnvelopeAddMode ? StartingVolume + 1 : StartingVolume - 1);
+                if(new_vol >= 0 && new_vol <=15)
+                {
+                    StartingVolume = (byte)new_vol;
+                }
+                else
+                {
+                    Envelope_enabled = false;
+                }
+                
             }
 
         }
@@ -174,15 +184,16 @@ namespace pGameBoy
             NR14 FF14 TL-- -FFF Trigger, Length enable, Frequency MSB*/
 
             ChannelEnable = true;
-            if (LengthLoad == 0) LengthLoad = 64;
+            if (LengthLoad == 0) LengthLoad = 63;
+            LengthTick();
             int value = (Reg4 << 8) | Reg3;
             value &= 0x7FF;
             ShadowFreq = value;
             Frequency = (2048 - value) * 2;
             EnvelopePeriod = (byte)(Reg2 & 0x7);
-            //SweepStep = 0;
-            //EnvelopeStep = 0;
+            Envelope_enabled = true;
             StartingVolume = (byte)(Reg2 >> 4);
+            if (StartingVolume == 0) ChannelEnable = false;
 
 
         }
@@ -197,6 +208,60 @@ namespace pGameBoy
                 SweepEnabled = true;
                 CalculateSweep();
             }
+        }
+
+        public void WriteSaveState(ref Savestate state, int channel)
+        {
+            state.SoundChannels[channel].Reg0 = Reg0;
+            state.SoundChannels[channel].Reg1 = Reg1;
+            state.SoundChannels[channel].Reg2 = Reg2;
+            state.SoundChannels[channel].Reg3 = Reg3;
+            state.SoundChannels[channel].Reg4 = Reg4;
+            state.SoundChannels[channel].ChannelEnable = ChannelEnable;
+            state.SoundChannels[channel].SweepPeriod = SweepPeriod;
+            state.SoundChannels[channel].Negate = Negate;
+            state.SoundChannels[channel].Shift = Shift;
+            state.SoundChannels[channel].Duty = Duty;
+            state.SoundChannels[channel].LengthLoad = LengthLoad;
+            state.SoundChannels[channel].StartingVolume = StartingVolume;
+            state.SoundChannels[channel].EnvelopeAddMode = EnvelopeAddMode;
+            state.SoundChannels[channel].EnvelopePeriod = EnvelopePeriod;
+            state.SoundChannels[channel].LengthEnable = LengthEnable;
+            state.SoundChannels[channel].CurrentDuty = CurrentDuty;
+            state.SoundChannels[channel].Sample = Sample;
+            state.SoundChannels[channel].Frequency = Frequency;
+            state.SoundChannels[channel].SweepEnabled = SweepEnabled;
+            state.SoundChannels[channel].ShadowFreq = ShadowFreq;
+            state.SoundChannels[channel].SweepStep = SweepStep;
+            state.SoundChannels[channel].Cycles = Cycles;
+            state.SoundChannels[channel].Envelope_enabled = Envelope_enabled;
+        }
+
+        public void LoadSaveState(Savestate state, int channel)
+        {
+            Reg0 = state.SoundChannels[channel].Reg0;
+            Reg1 = state.SoundChannels[channel].Reg1;
+            Reg2 = state.SoundChannels[channel].Reg2;
+            Reg3 = state.SoundChannels[channel].Reg3;
+            Reg4 = state.SoundChannels[channel].Reg4;
+            ChannelEnable = state.SoundChannels[channel].ChannelEnable;
+            SweepPeriod = state.SoundChannels[channel].SweepPeriod;
+            Negate = state.SoundChannels[channel].Negate;
+            Shift = state.SoundChannels[channel].Shift;
+            Duty = state.SoundChannels[channel].Duty;
+            LengthLoad = state.SoundChannels[channel].LengthLoad;
+            StartingVolume = state.SoundChannels[channel].StartingVolume;
+            EnvelopeAddMode = state.SoundChannels[channel].EnvelopeAddMode;
+            EnvelopePeriod = state.SoundChannels[channel].EnvelopePeriod;
+            LengthEnable = state.SoundChannels[channel].LengthEnable;
+            CurrentDuty = state.SoundChannels[channel].CurrentDuty;
+            Sample = state.SoundChannels[channel].Sample;
+            Frequency = state.SoundChannels[channel].Frequency;
+            SweepEnabled = state.SoundChannels[channel].SweepEnabled;
+            ShadowFreq = state.SoundChannels[channel].ShadowFreq;
+            SweepStep = state.SoundChannels[channel].SweepStep;
+            Cycles = state.SoundChannels[channel].Cycles;
+            Envelope_enabled = state.SoundChannels[channel].Envelope_enabled;
         }
 
 

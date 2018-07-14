@@ -40,6 +40,7 @@ namespace pGameBoy
 
         }
 
+
         public void Tick()
         {
             cycles++;
@@ -102,6 +103,7 @@ namespace pGameBoy
             ChannelEnable = true;
             //cycles = 0;
             if (LengthLoad == 0) LengthLoad = 255;
+            LengthTick();
             int value = (Reg4 << 8) | Reg3;
             value &= 0x7FF;
             Frequency = (2048 - value);
@@ -109,6 +111,41 @@ namespace pGameBoy
             Sample = 0;
             if (!DacPower) ChannelEnable = false;
 
+        }
+
+        public void WriteSaveState(ref Savestate state, int channel)
+        {
+            Array.Copy(WaveTable, state.SoundChannels[channel].WaveTable, WaveTable.Length);
+            state.SoundChannels[channel].Reg0 = Reg0;
+            state.SoundChannels[channel].Reg1 = Reg1;
+            state.SoundChannels[channel].Reg2 = Reg2;
+            state.SoundChannels[channel].Reg3 = Reg3;
+            state.SoundChannels[channel].Reg4 = Reg4;
+            state.SoundChannels[channel].ChannelEnable = ChannelEnable;
+            state.SoundChannels[channel].LengthLoad = LengthLoad;
+            state.SoundChannels[channel].Sample = Sample;
+            state.SoundChannels[channel].Frequency = Frequency;
+            state.SoundChannels[channel].Cycles = cycles;
+            state.SoundChannels[channel].DacPower = DacPower;
+            state.SoundChannels[channel].wavePos = wavePos;
+            state.SoundChannels[channel].Volume = Volume;
+        }
+        public void LoadSaveState(Savestate state, int channel)
+        {
+            Array.Copy(state.SoundChannels[channel].WaveTable, WaveTable, WaveTable.Length);
+            Reg0 = state.SoundChannels[channel].Reg0;
+            Reg1 = state.SoundChannels[channel].Reg1;
+            Reg2 = state.SoundChannels[channel].Reg2;
+            Reg3 = state.SoundChannels[channel].Reg3;
+            Reg4 = state.SoundChannels[channel].Reg4;
+            ChannelEnable = state.SoundChannels[channel].ChannelEnable;
+            LengthLoad = state.SoundChannels[channel].LengthLoad;
+            Sample = state.SoundChannels[channel].Sample;
+            Frequency = state.SoundChannels[channel].Frequency;
+            cycles = state.SoundChannels[channel].Cycles;
+            DacPower = state.SoundChannels[channel].DacPower;
+            wavePos = state.SoundChannels[channel].wavePos;
+            Volume = (byte)state.SoundChannels[channel].Volume;
         }
 
     }

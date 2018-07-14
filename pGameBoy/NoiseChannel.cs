@@ -33,9 +33,8 @@ namespace pGameBoy
         public int Sample = 0;
 
         private int LFSR = 0;
-
-        private int EnvelopeStep = 0;
         private int cycles = 0;
+        private bool Envelope_enabled = false;
 
         private int[] DivisiorCodes = new int[]
         {
@@ -43,6 +42,7 @@ namespace pGameBoy
         };
 
         public NoiseChannel() { }
+
 
         private Random _rand = new Random();
 
@@ -67,12 +67,20 @@ namespace pGameBoy
 
         public void EnvelopeTick()
         {
-            if (EnvelopePeriod == 0 || StartingVolume == 0 && EnvelopeAddMode == false || StartingVolume == 15 && EnvelopeAddMode == true) return;
-            EnvelopeStep++;
-            if (EnvelopeStep >= EnvelopePeriod)
+            if (EnvelopePeriod == 0) return;
+            if (Envelope_enabled && --EnvelopePeriod == 0)
             {
-                StartingVolume = (byte)(EnvelopeAddMode == true ? StartingVolume + 1 : StartingVolume - 1);
-                EnvelopeStep = 0;  
+                EnvelopePeriod = (byte)(Reg2 & 0x7);
+                int new_vol = (byte)(EnvelopeAddMode ? StartingVolume + 1 : StartingVolume - 1);
+                if (new_vol >= 0 && new_vol <= 15)
+                {
+                    StartingVolume = (byte)new_vol;
+                }
+                else
+                {
+                    Envelope_enabled = false;
+                }
+
             }
 
         }
@@ -123,13 +131,55 @@ namespace pGameBoy
 
             cycles = 0;
             ChannelEnable = true;
-            if (LengthLoad == 0) LengthLoad = 64;
+            if (LengthLoad == 0) LengthLoad = 63;
+            LengthTick();
             EnvelopePeriod = (byte)(Reg2 & 0x7);
-            EnvelopeAddMode = ((Reg2 >> 3) & 1) != 0 ? true : false;
-            EnvelopeStep = 0;
+            Envelope_enabled = true;
             StartingVolume = (byte)(Reg2 >> 4);
             Frequency = (DivisiorCodes[DivisorCode] << ClockShift) / 2;
             LFSR = 0x7FFF;
+            if (StartingVolume == 0) ChannelEnable = false;
+        }
+
+        public void WriteSaveState(ref Savestate state, int channel)
+        {
+            state.SoundChannels[channel].Reg0 = Reg0;
+            state.SoundChannels[channel].Reg1 = Reg1;
+            state.SoundChannels[channel].Reg2 = Reg2;
+            state.SoundChannels[channel].Reg3 = Reg3;
+            state.SoundChannels[channel].Reg4 = Reg4;
+            state.SoundChannels[channel].ChannelEnable = ChannelEnable;
+            state.SoundChannels[channel].LengthLoad = LengthLoad;
+            state.SoundChannels[channel].StartingVolume = StartingVolume;
+            state.SoundChannels[channel].EnvelopeAddMode = EnvelopeAddMode;
+            state.SoundChannels[channel].EnvelopePeriod = EnvelopePeriod;
+            state.SoundChannels[channel].LengthEnable = LengthEnable;
+            state.SoundChannels[channel].Sample = Sample;
+            state.SoundChannels[channel].Frequency = Frequency;
+            state.SoundChannels[channel].Envelope_enabled = Envelope_enabled;
+            state.SoundChannels[channel].WidthOfLFSR = WidthOfLFSR;
+            state.SoundChannels[channel].DivisorCode = DivisorCode;
+            state.SoundChannels[channel].LFSR = LFSR;
+        }
+        public void LoadSaveState(Savestate state, int channel)
+        {
+            Reg0 = state.SoundChannels[channel].Reg0;
+            Reg1 = state.SoundChannels[channel].Reg1;
+            Reg2 = state.SoundChannels[channel].Reg2;
+            Reg3 = state.SoundChannels[channel].Reg3;
+            Reg4 = state.SoundChannels[channel].Reg4;
+            ChannelEnable = state.SoundChannels[channel].ChannelEnable;
+            LengthLoad = state.SoundChannels[channel].LengthLoad;
+            StartingVolume = state.SoundChannels[channel].StartingVolume;
+            EnvelopeAddMode = state.SoundChannels[channel].EnvelopeAddMode;
+            EnvelopePeriod = state.SoundChannels[channel].EnvelopePeriod;
+            LengthEnable = state.SoundChannels[channel].LengthEnable;
+            Sample = state.SoundChannels[channel].Sample;
+            Frequency = state.SoundChannels[channel].Frequency;
+            Envelope_enabled = state.SoundChannels[channel].Envelope_enabled;
+            WidthOfLFSR = state.SoundChannels[channel].WidthOfLFSR;
+            DivisorCode = state.SoundChannels[channel].DivisorCode;
+            LFSR = state.SoundChannels[channel].LFSR;
         }
     }
 

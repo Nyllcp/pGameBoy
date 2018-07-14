@@ -11,6 +11,8 @@ using SFML.Graphics;
 using SFML.System;
 using SFML.Window;
 using SFML.Audio;
+using System.Runtime.InteropServices;
+using System.Diagnostics;
 
 namespace pGameBoy
 {
@@ -42,10 +44,34 @@ namespace pGameBoy
 
         private byte[] _frame = new byte[160 * 144 * 4]; //4 Bytes per pixel
 
+        [DllImport("user32.dll", CharSet = CharSet.Auto, ExactSpelling = true)]
+        private static extern IntPtr GetForegroundWindow();
+
+        [DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)]
+        private static extern int GetWindowThreadProcessId(IntPtr handle, out int processId);
+
         public Main()
         {
             InitializeComponent();
         }
+
+        public static bool ApplicationIsActivated()
+        {
+            var activatedHandle = GetForegroundWindow();
+            if (activatedHandle == IntPtr.Zero)
+            {
+                return false;       // No window is currently activated
+            }
+
+            var procId = Process.GetCurrentProcess().Id;
+            int activeProcId;
+            GetWindowThreadProcessId(activatedHandle, out activeProcId);
+
+            return activeProcId == procId;
+        }
+
+
+       
 
         private void Main_Load(object sender, EventArgs e)
         {
@@ -55,7 +81,8 @@ namespace pGameBoy
             _ofd.Filter = "Supported files (*.gb *.gbc *.zip)|*.gb;*.gbc;*.zip|All files (*.*)|*.*";
             _ofd.FilterIndex = 1;
             _ofd.RestoreDirectory = true;
-            
+            toolStripStatusFps.Text = "FPS: " + frames.ToString() + " Selected Save State : " + 0;
+
         }
 
         private void InitSFML()
@@ -66,7 +93,7 @@ namespace pGameBoy
             _drawingSurface = new DrawingSurface();
             _drawingSurface.Size = new System.Drawing.Size(gbWidth * 5, gbHeigth * 5);
 
-            this.ClientSize = new Size(_drawingSurface.Right, _drawingSurface.Bottom + statusStrip.Size.Height + menuStrip.Height);
+            this.ClientSize = new Size(_drawingSurface.Right, _drawingSurface.Bottom + menuStrip.Height);
             Controls.Add(_drawingSurface);
             _drawingSurface.Location = new System.Drawing.Point(0, menuStrip.Height);
 
@@ -79,6 +106,23 @@ namespace pGameBoy
             _window = new RenderWindow(_drawingSurface.Handle);
             _window.SetFramerateLimit(0);
 
+            _texture.Update(_frame);
+            _window.Clear();
+            _window.Draw(_sprite);
+            _window.Display();
+
+            _drawingSurface.ContextMenuStrip = rightClickMenu;
+
+        }
+
+        private void SetScale(int multiplier)
+        {
+            multiplier = multiplier > 6 ? 6 : multiplier;
+
+            _drawingSurface.Size = new System.Drawing.Size(gbWidth * multiplier, gbHeigth * multiplier);
+            this.ClientSize = new Size(_drawingSurface.Right, _drawingSurface.Bottom  + menuStrip.Height);
+            _drawingSurface.Location = new System.Drawing.Point(0, menuStrip.Height);
+            //_sprite.Scale = new Vector2f((float)multiplier, (float)multiplier);
             _texture.Update(_frame);
             _window.Clear();
             _window.Draw(_sprite);
@@ -135,12 +179,13 @@ namespace pGameBoy
             while (run)
             {
                 _drawingSurface.Select();
-                Input();
+                if(ApplicationIsActivated()) Input();
+
                 while (!_gameboy.Frameready)
                 {
                     _gameboy.MachineCycle();
                 }
-                //UpdateFrame(_gameboy.Frambuffer, Palette.Zelda);
+
                 UpdateFrameRGB(_gameboy.FrambufferRGB);
                 _texture.Update(_frame);
                 _window.Clear();
@@ -165,7 +210,8 @@ namespace pGameBoy
                     _savetimer++;
                     int cyclesperframe = (_gameboy.CpuCycles - lastCycles) / frames;
                     lastCycles = _gameboy.CpuCycles;
-                    toolStripStatusFps.Text = "FPS: " + frames.ToString() + " Cpu Cycles Per Frame : " + cyclesperframe.ToString() + " Bytes in audio buffer:" + _audio.GetBufferedBytes();
+                    //toolStripStatusFps.Text = "FPS: " + frames.ToString() + " Cpu Cycles Per Frame : " + cyclesperframe.ToString() + " Bytes in audio buffer:" + _audio.GetBufferedBytes();
+                    toolStripStatusFps.Text = "FPS: " + frames.ToString() + " Selected Save State : " + (_gameboy.SelectedSavestate + 1);
                     frames = 0;
                     if(_savetimer > 60 * 3) //Write savefile to disk every 3 minutes.
                     {
@@ -180,16 +226,7 @@ namespace pGameBoy
 
         }
 
-        private void UpdateFrame(byte[] gbFrame , uint[] pallete)
-        {
-            for(int i = 0; i < gbFrame.Length; i++)
-            {
-                _frame[i * 4] = (byte)(pallete[gbFrame[i]] & 0xFF);
-                _frame[i * 4 + 1] = (byte)((pallete[gbFrame[i]] >> 8) & 0xFF);
-                _frame[i * 4 + 2] = (byte)((pallete[gbFrame[i]] >> 16) & 0xFF);
-                _frame[i * 4 + 3] = (byte)((pallete[gbFrame[i]] >> 24) & 0xFF);
-            }
-        }
+
         private void UpdateFrameRGB(uint[] gbFrame)
         {
             for (int i = 0; i < gbFrame.Length; i++)
@@ -250,6 +287,15 @@ namespace pGameBoy
             }
             frameLimitToggle = SFML.Window.Keyboard.IsKeyPressed(Keyboard.Key.Q) | SFML.Window.Keyboard.IsKeyPressed(Keyboard.Key.C);
 
+            if (SFML.Window.Keyboard.IsKeyPressed(Keyboard.Key.E))
+            {
+                _gameboy.SaveState = true;
+            }
+            if (SFML.Window.Keyboard.IsKeyPressed(Keyboard.Key.R))
+            {
+                _gameboy.LoadState = true;
+            }
+
         }
 
         private void toggleFramelimitToolStripMenuItem_Click(object sender, EventArgs e)
@@ -267,15 +313,31 @@ namespace pGameBoy
             _gameboy.Reset();
         }
 
-        private void xToolStripMenuItem_Click(object sender, EventArgs e)
+        private void SetScaleClick(object sender, EventArgs e)
         {
-
+            ToolStripMenuItem value = sender as ToolStripMenuItem;
+            SetScale(int.Parse(value.Tag.ToString()));
+        }
+        private void SetSaveStateClick(object sender, EventArgs e)
+        {
+            ToolStripMenuItem value = sender as ToolStripMenuItem;
+            _gameboy.SelectedSavestate = int.Parse(value.Text.ToString()) - 1;
         }
 
         private void Main_FormClosed(object sender, FormClosedEventArgs e)
         {
             run = false;
             Application.Exit();
+        }
+
+        private void loadStateToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            _gameboy.LoadState = true;
+        }
+
+        private void saveStateToolStripMenuItem1_Click(object sender, EventArgs e)
+        {
+            _gameboy.SaveState = true;     
         }
     }
 }
