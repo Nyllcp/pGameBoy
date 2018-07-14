@@ -13,7 +13,7 @@ namespace pGameBoy
         private Cpu _cpu;
         private PPU _ppu;
         private Apu _apu;
-        private Savestate[] _saveStates = new Savestate[10];
+        private Savestate _saveState = new Savestate();
 
         //Interrupt constants
         const byte vblank_const = 0x01, LCDC_const = 0x02, Timeroverflow_const = 0x04, Serial_const = 0x08, negativeedge_const = 0x10;
@@ -65,10 +65,6 @@ namespace pGameBoy
             _cpu = new Cpu(this);
             _ppu = new PPU(this);
             _apu = new Apu();
-            for(int i = 0; i < _saveStates.Length; i ++)
-            {
-                _saveStates[i] = new Savestate();
-            }
         }
 
 
@@ -115,12 +111,14 @@ namespace pGameBoy
             }
             if(saveState)
             {
-                WriteSaveState(ref _saveStates[selectedSavestate]);
+                WriteSaveState(ref _saveState);
+                _cart.WriteStateFile(_saveState, selectedSavestate);
                 saveState = false;
             }
             if(loadState)
             {
-                LoadSaveState(_saveStates[selectedSavestate]);
+                _saveState = _cart.LoadStateFile(selectedSavestate);
+                LoadSaveState(_saveState);
                 loadState = false;
             }
 

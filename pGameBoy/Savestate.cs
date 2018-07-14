@@ -98,6 +98,7 @@ namespace pGameBoy
         public byte soundOutputReg = 0;
         public bool soundEnabled = true;
 
+        [Serializable()]
         public class SoundChannel
         {
             public SoundChannel() { }

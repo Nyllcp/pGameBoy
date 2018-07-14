@@ -37,6 +37,7 @@ namespace pGameBoy
 
         private bool frameLimit = true;
         private bool frameLimitToggle = false;
+        private bool saveStateToggle = false;
         private bool run = false;
 
         const byte gbWidth = 160;
@@ -93,7 +94,7 @@ namespace pGameBoy
             _drawingSurface = new DrawingSurface();
             _drawingSurface.Size = new System.Drawing.Size(gbWidth * 5, gbHeigth * 5);
 
-            this.ClientSize = new Size(_drawingSurface.Right, _drawingSurface.Bottom + menuStrip.Height);
+            this.ClientSize = new Size(_drawingSurface.Right, _drawingSurface.Bottom + menuStrip.Height + statusStrip.Height);
             Controls.Add(_drawingSurface);
             _drawingSurface.Location = new System.Drawing.Point(0, menuStrip.Height);
 
@@ -179,11 +180,13 @@ namespace pGameBoy
             while (run)
             {
                 _drawingSurface.Select();
-                if(ApplicationIsActivated()) Input();
-
-                while (!_gameboy.Frameready)
+                if (ApplicationIsActivated())
                 {
-                    _gameboy.MachineCycle();
+                    Input();
+                    while (!_gameboy.Frameready)
+                    {
+                        _gameboy.MachineCycle();
+                    }
                 }
 
                 UpdateFrameRGB(_gameboy.FrambufferRGB);
@@ -287,14 +290,15 @@ namespace pGameBoy
             }
             frameLimitToggle = SFML.Window.Keyboard.IsKeyPressed(Keyboard.Key.Q) | SFML.Window.Keyboard.IsKeyPressed(Keyboard.Key.C);
 
-            if (SFML.Window.Keyboard.IsKeyPressed(Keyboard.Key.E))
+            if (SFML.Window.Keyboard.IsKeyPressed(Keyboard.Key.E) && !saveStateToggle)
             {
                 _gameboy.SaveState = true;
             }
-            if (SFML.Window.Keyboard.IsKeyPressed(Keyboard.Key.R))
+            if (SFML.Window.Keyboard.IsKeyPressed(Keyboard.Key.R) && !saveStateToggle)
             {
                 _gameboy.LoadState = true;
             }
+            saveStateToggle = SFML.Window.Keyboard.IsKeyPressed(Keyboard.Key.R) | SFML.Window.Keyboard.IsKeyPressed(Keyboard.Key.E);
 
         }
 
@@ -332,6 +336,7 @@ namespace pGameBoy
 
         private void loadStateToolStripMenuItem_Click(object sender, EventArgs e)
         {
+            if(_gameboy != null)
             _gameboy.LoadState = true;
         }
 
