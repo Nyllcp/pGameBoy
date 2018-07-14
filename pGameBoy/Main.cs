@@ -216,7 +216,7 @@ namespace pGameBoy
                     //toolStripStatusFps.Text = "FPS: " + frames.ToString() + " Cpu Cycles Per Frame : " + cyclesperframe.ToString() + " Bytes in audio buffer:" + _audio.GetBufferedBytes();
                     toolStripStatusFps.Text = "FPS: " + frames.ToString() + " Selected Save State : " + (_gameboy.SelectedSavestate + 1);
                     frames = 0;
-                    if(_savetimer > 60 * 3) //Write savefile to disk every 3 minutes.
+                    if(_savetimer > 60) //Write savefile to disk every 1 minute(s).
                     {
                         _savetimer = 0;
                         _gameboy.WriteSave(); 

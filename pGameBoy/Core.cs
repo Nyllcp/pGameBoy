@@ -117,8 +117,8 @@ namespace pGameBoy
             }
             if(loadState)
             {
-                _saveState = _cart.LoadStateFile(selectedSavestate);
-                LoadSaveState(_saveState);
+                Savestate tempState = _cart.LoadStateFile(selectedSavestate);
+                if (tempState != null) { LoadSaveState(tempState); }
                 loadState = false;
             }
 

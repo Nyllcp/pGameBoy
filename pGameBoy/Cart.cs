@@ -180,25 +180,36 @@ namespace pGameBoy
         public void WriteSaveFile()
         {
             if (!cartBattery) return;
-
-            _writer = new BinaryWriter(File.Open(saveFilename, FileMode.Create));
-            for(int i = 0; i < saveRAM.Length - 1; i++)
+            using (BinaryWriter writer = new BinaryWriter(File.Open(saveFilename, FileMode.Create)))
             {
-                _writer.Write(saveRAM[i]);
+                for (int i = 0; i < saveRAM.Length - 1; i++)
+                {
+                    writer.Write(saveRAM[i]);
+                }
+                writer.Close();
             }
-            _writer.Close();
-        }
-        public void WriteStateFile(Savestate state, int selectedState)
-        {
+                
 
+        }
+        public bool WriteStateFile(Savestate state, int selectedState)
+        {
             selectedState = selectedState > 9 ? 9 : selectedState;
             string extension = "s" + selectedState.ToString();
-            Path.ChangeExtension(stateFilename, extension);
-            using (Stream stream = File.Open(stateFilename, FileMode.Create))
+            stateFilename = Path.ChangeExtension(stateFilename, extension);
+            try
             {
-                var binaryFormatter = new System.Runtime.Serialization.Formatters.Binary.BinaryFormatter();
-                binaryFormatter.Serialize(stream, state);
+                using (Stream stream = File.Open(stateFilename, FileMode.Create))
+                {
+                    var binaryFormatter = new System.Runtime.Serialization.Formatters.Binary.BinaryFormatter();
+                    binaryFormatter.Serialize(stream, state);
+                }
+                return true;
             }
+            catch
+            {
+                //IOERROR
+            }
+            return false;
 
         }
         public Savestate LoadStateFile(int selectedState)
@@ -206,13 +217,21 @@ namespace pGameBoy
             Savestate value;
             selectedState = selectedState > 9 ? 9 : selectedState;
             string extension = "s" + selectedState.ToString();
-            Path.ChangeExtension(stateFilename, extension);
-            using (Stream stream = File.Open(stateFilename, FileMode.Open))
+            stateFilename = Path.ChangeExtension(stateFilename, extension);
+            try
             {
-                var binaryFormatter = new System.Runtime.Serialization.Formatters.Binary.BinaryFormatter();
-                value = binaryFormatter.Deserialize(stream) as Savestate;
+                using (Stream stream = File.Open(stateFilename, FileMode.Open))
+                {
+                    var binaryFormatter = new System.Runtime.Serialization.Formatters.Binary.BinaryFormatter();
+                    value = binaryFormatter.Deserialize(stream) as Savestate;
+                    return value;
+                }
             }
-            return value;
+            catch
+            {
+                //IOERROR
+            }
+            return null;
 
         }
         public byte ReadCart(ushort address)
