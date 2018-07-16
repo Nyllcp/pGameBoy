@@ -308,9 +308,9 @@ namespace pGameBoy
                 case 0x54: return hdmaDestLowByte;
                 case 0x55: return hdmaLenghtCounter;
                 case 0x68: return bgPaletteIndex;
-                case 0x69: return gbcBgPalette[bgPaletteIndex & 0x1F];
+                case 0x69: return gbcBgPalette[bgPaletteIndex & 0x3F];
                 case 0x6A: return objPaletteIndex;
-                case 0x6B: return gbcObjPalette[objPaletteIndex & 0x1F];
+                case 0x6B: return gbcObjPalette[objPaletteIndex & 0x3F];
             }
             return 0;
         }
@@ -333,7 +333,7 @@ namespace pGameBoy
                 }
             }
 
-            if ((lcdc & BgDisplayOn) == BgDisplayOn)
+            if ((lcdc & BgDisplayOn) == BgDisplayOn || gbcMode)
             {
                 for (int i = 0; i < LCD_width; i++)
                 {
@@ -399,10 +399,10 @@ namespace pGameBoy
                 for (int i = 0; i < LCD_width; i++)
                 {
                     bool render = false;
-                    if (wx <= 166 && ly >= wy && i >= (wx - 7)) render = true;
+                    int wxx = wx - 7;
+                    if (ly >= wy && wxx < LCD_width && i >= wxx) render = true;
                     if (render)
-                    {
-                        int wxx = wx - 7;
+                    { 
                         int currentx = ((i - wxx) / 8);
                         int currenty = ((ly - wy) / 8);
                         int currenttileinfo = currentx + (currenty * 32);
@@ -463,12 +463,13 @@ namespace pGameBoy
             }
             if ((lcdc & ObjOn) != 0)
             {
-                for (int i = 0x9F; i > 0; i -= 4)
+                int spritesOnScanline = 0;
+                for (int i = 0; i < 0x9F; i += 4)
                 {
-                    int ypos = oamRam[i - 3];
-                    int xpos = oamRam[i - 2];
-                    int tilepattern = oamRam[i - 1];
-                    byte flags = oamRam[i];
+                    int ypos = oamRam[i];
+                    int xpos = oamRam[i + 1];
+                    int tilepattern = oamRam[i + 2];
+                    byte flags = oamRam[i + 3];
                     if (largesprites) tilepattern &= ~1;
                     bool priority = (flags & 0x80) != 0 ? true : false;
                     bool yfliped = (flags & 0x40) != 0 ? true : false;
@@ -486,23 +487,26 @@ namespace pGameBoy
 
                     tilepattern *= 0x10;
                     bool rendersprite = true;
-                    bool renderpixel = true;
-                    if (ypos == 0 | xpos == 0)
-                        rendersprite = false;
 
+                    if (ypos == 0 || ypos >= 160) { rendersprite = false; } 
+                           
                     ypos -= 16;
+                    
+                    if (ly < ypos || ly > ypos + (largesprites ? 15 : 7)) { rendersprite = false; } 
+                    else { spritesOnScanline++; }
+
+                    if(xpos >= 168 || xpos == 0) { rendersprite = false; }
+
                     xpos -= 8;
 
-                    if (ypos > 143)
-                        rendersprite = false;
-                    if (ly < ypos || ly > ypos + (largesprites ? 15 : 7))
-                        rendersprite = false;
+                    if (spritesOnScanline > 10) { rendersprite = false; } //max 10 spries per scanline
                     if (rendersprite)
                     {
                         int tiley = ly - ypos;
                         if (yfliped) tiley = largesprites ? 15 - (ly - ypos) : 7 - (ly - ypos); 
                         byte tiledata1 = ReadVramBank(vrambank, ((ushort)(tilepattern + 0x8000 + (tiley * 2))));
                         byte tiledata2 = ReadVramBank(vrambank, ((ushort)(tilepattern + 0x8000 + 1 + (tiley * 2))));
+                        bool renderpixel = true;
 
                         for (int x = 0; x < 8; x++)
                         {
@@ -516,18 +520,15 @@ namespace pGameBoy
                                 byte pixel = (byte)(data1 | data2);
                                 int pixelplace = (xpos + x);
                                 renderpixel = true;
-                                if (pixelplace > LCD_width - 1) renderpixel = false;
                                 if (pixel == 0) renderpixel = false;
-                                
+
+                                if (priority && scanlinebuffer[0, pixelplace] != 0) { renderpixel = false; }
                                 if (gbcMode)
                                 {
                                     if (((scanlinebuffer[1, pixelplace] >> 7) & 1) != 0) { renderpixel = false; }
                                     if((lcdc & BgDisplayOn) == 0) { renderpixel = true; }
                                 }
-                                else
-                                {
-                                    if (priority && scanlinebuffer[0, pixelplace] != bgPallete[0]) { renderpixel = false; }
-                                }
+                               
                                 if (renderpixel)
                                 {
                                     if (gbcMode)
@@ -616,6 +617,7 @@ namespace pGameBoy
                 if (((bgPaletteIndex >> 7) & 1) != 0)
                 {
                     bgPaletteIndex++;
+                    bgPaletteIndex |= 0x80;
                 }
             }
             else
@@ -624,6 +626,7 @@ namespace pGameBoy
                 if (((objPaletteIndex >> 7) & 1) != 0)
                 {
                     objPaletteIndex++;
+                    objPaletteIndex |= 0x80;
                 }
             }
         }

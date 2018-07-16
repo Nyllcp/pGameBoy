@@ -45,7 +45,7 @@ namespace pGameBoy
         private byte keydata2 = 0xF;
         private byte ie = 0xE0; //Interrupt enable
         private byte iflag = 0xE0; //Interruptflag
-        private int lastcycles;
+        private int lastCycles;
 
 
         public bool Frameready { get { return _ppu.Frameready; } set { _ppu.Frameready = value; } }
@@ -58,6 +58,7 @@ namespace pGameBoy
         public bool SaveState { get { return saveState; } set { saveState = value; } }
         public bool LoadState { get { return loadState; } set { loadState = value; } }
         public int SelectedSavestate { get { return selectedSavestate; } set { selectedSavestate = value > 9 ? 9 : value; } }
+        public int LastCycles { get { return lastCycles; } set { lastCycles = value; } }
 
         public Core()
         {
@@ -70,8 +71,7 @@ namespace pGameBoy
 
         public void MachineCycle()
         {
-            
-            lastcycles = _cpu.Cycles;
+            lastCycles = _cpu.Cycles;
             if (prepareSpeedSwitch)
             {
                 if (_cpu.Stop)
@@ -83,15 +83,16 @@ namespace pGameBoy
             }
             if (doubleSpeed)
             {
+    
                 HandleInterrupt();
                 _cpu.Cycle();
                 HandleInterrupt();
                 _cpu.Cycle();
-                for (int i = 0; i < _cpu.Cycles - lastcycles; i++)
+                for (int i = 0; i < _cpu.Cycles - lastCycles; i++)
                 {
                     Timer();
                 }
-                for (int i = 0; i < (_cpu.Cycles - lastcycles) / 2; i++)
+                for (int i = 0; i < (_cpu.Cycles - lastCycles) / 2; i++)
                 {
                     _ppu.LcdTick();
                     _apu.ApuTick();
@@ -99,15 +100,16 @@ namespace pGameBoy
             }
             else
             {
+           
                 HandleInterrupt();
                 _cpu.Cycle();
-
-                for (int i = 0; i < _cpu.Cycles - lastcycles; i++)
+                for (int i = 0; i < _cpu.Cycles - lastCycles; i++)
                 {
                     _ppu.LcdTick();
                     Timer();
                     _apu.ApuTick();
                 }
+
             }
             if(saveState)
             {
@@ -121,7 +123,6 @@ namespace pGameBoy
                 if (tempState != null) { LoadSaveState(tempState); }
                 loadState = false;
             }
-
 
         }
 
@@ -347,6 +348,7 @@ namespace pGameBoy
                     {
                         WriteMem((ushort)(0xFE00 + i), ReadMem((ushort)((dma << 8) + i)));
                     }
+                    //lastCycles -= 640; // "Stall cpu" for 640 cycles 
                     break;
                 case 0x47: _ppu.WriteLcdRegister(address, data); break;
                 case 0x48: _ppu.WriteLcdRegister(address, data); break;
@@ -552,7 +554,7 @@ namespace pGameBoy
             state.keydata2 = 0xF;
             state.ie = ie;
             state.iflag = iflag;
-            state.lastcycles = lastcycles;
+            state.lastcycles = lastCycles;
             return state;
         }
 
@@ -580,7 +582,7 @@ namespace pGameBoy
             keydata2 = 0xF;
             ie = state.ie;
             iflag = state.iflag;
-            lastcycles = state.lastcycles;
+            lastCycles = state.lastcycles;
         }
     }
 }

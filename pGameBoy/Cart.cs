@@ -13,7 +13,6 @@ namespace pGameBoy
     class Cart
     {
         private BinaryReader _reader;
-        private BinaryWriter _writer;
         private MemoryStream _ms;
 
         private byte[] prgROM;
@@ -123,7 +122,7 @@ namespace pGameBoy
             prgRomSize = (0x8000) << romSize;
             prgROM = new byte[prgRomSize];
             if(ramSize != 0 )saveRAM = new byte[SaveSize[ramSize - 1]];
-            if(cartMbc5) saveRAM = new byte[0x2000];
+            //if(cartMbc5) saveRAM = new byte[0x2000];
             for (int i = 0; i < prgRomSize; i++)
             {
                 prgROM[i] = _reader.ReadByte();
@@ -332,7 +331,7 @@ namespace pGameBoy
                 }
                 if(cartMbc5)
                 {
-
+                    ramOffset = (data & 0xF) * 0x2000;
                 }
                      
             }
