@@ -177,7 +177,7 @@ namespace pGameBoy
                     break; 
                 case 0x11:
                     _squareChannel1.Duty = (byte)(data >> 6);
-                    _squareChannel1.LengthLoad = (byte)(0x3F - (data & 0x3F));
+                    _squareChannel1.LengthLoad = (byte)(0x40 - (data & 0x3F));
                     _squareChannel1.Reg1 = data;
                     break;
                 case 0x12:
@@ -203,7 +203,7 @@ namespace pGameBoy
                 case 0x15: break; //not used
                 case 0x16:
                     _squareChannel2.Duty = (byte)(data >> 6);
-                    _squareChannel2.LengthLoad = (byte)(0x3F - (data & 0x3F));
+                    _squareChannel2.LengthLoad = (byte)(0x40 - (data & 0x3F));
                     _squareChannel2.Reg1 = data;
                     break;
                 case 0x17:
@@ -228,7 +228,7 @@ namespace pGameBoy
                     _waveChannel.Reg0 = data;
                     break;
                 case 0x1B:
-                    _waveChannel.LengthLoad = (byte)(0xFF - data);
+                    _waveChannel.LengthLoad = (byte)(0x100 - data);
                     _waveChannel.Reg1 = data;
                     break;
                 case 0x1C:
@@ -246,7 +246,7 @@ namespace pGameBoy
                 //Noise
                 case 0x1F: break; //not used
                 case 0x20:
-                    _noiseChannel.LengthLoad = (byte)(0x3F - (data & 0x3F));
+                    _noiseChannel.LengthLoad = (byte)(0x40 - (data & 0x3F));
                     _noiseChannel.Reg1 = data;
                     break; 
                 case 0x21:

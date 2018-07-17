@@ -321,7 +321,7 @@ namespace pGameBoy
             int bgtilemap = (lcdc & BgTileArea) == BgTileArea ? 0x9C00 : 0x9800;
             bool largesprites = (lcdc & ObjBlockSize) == ObjBlockSize ? true : false;
 
-            int[,] scanlinebuffer = new int[2, LCD_width];
+            int[,] scanlinebuffer = new int[2, LCD_width]; // 0 for pixeldata 1 for palette index in gbcmode, 1 is not used in dmg-mode see Get32bitRGB(int pixel,int palette)
 
             if ((lcdc & BgDisplayOn) != BgDisplayOn && !gbcMode)
             {
@@ -449,8 +449,8 @@ namespace pGameBoy
                         int pixelplace = i;
                         if (gbcMode)
                         {
-                            bgpalleteno |= 1 << 6;
-                            if (bgpriority) bgpalleteno |= 1 << 7;
+                            bgpalleteno |= 1 << 6; //obj or bg palette flag
+                            if (bgpriority) bgpalleteno |= 1 << 7; //bg-prio flag for sprites
                             scanlinebuffer[0, pixelplace] = pixel;
                             scanlinebuffer[1, pixelplace] = bgpalleteno;
                         }
@@ -525,15 +525,16 @@ namespace pGameBoy
                                 if (priority && scanlinebuffer[0, pixelplace] != 0) { renderpixel = false; }
                                 if (gbcMode)
                                 {
-                                    if (((scanlinebuffer[1, pixelplace] >> 7) & 1) != 0) { renderpixel = false; }
-                                    if((lcdc & BgDisplayOn) == 0) { renderpixel = true; }
+                                    if (((scanlinebuffer[1, pixelplace] >> 7) & 1) != 0) { renderpixel = false; } // bg prio flag packed with pallete byte
+                                    if ((lcdc & BgDisplayOn) == 0) { renderpixel = true; }
+                                    if (((scanlinebuffer[1, pixelplace] >> 5) & 1) != 0) { renderpixel = false; } // sprite prio flag packed with palette byte     
                                 }
                                
                                 if (renderpixel)
                                 {
                                     if (gbcMode)
                                     {
-                                        
+                                        objpalette |= (1 << 5); // sprite prio flag packed with palette byte     
                                         scanlinebuffer[0, pixelplace] = pixel;
                                         scanlinebuffer[1, pixelplace] = objpalette;
                                     }

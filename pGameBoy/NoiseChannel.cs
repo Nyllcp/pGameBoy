@@ -48,20 +48,13 @@ namespace pGameBoy
 
         public void LengthTick()
         {
-            if (LengthLoad == 0)
-            {
-                ChannelEnable = false;
-                return;
-            }
-            if (LengthEnable)
+            if (LengthLoad != 0 && LengthEnable)
             {
                 LengthLoad--;
-                if (LengthLoad == 0)
+                if(LengthLoad == 0)
                 {
-                    ChannelEnable = false;
+                     ChannelEnable = false;
                 }
-
-
             }
         }
 
@@ -88,12 +81,15 @@ namespace pGameBoy
         public void Tick()
         {
             cycles++;
+            if(ClockShift == 14 || ClockShift == 15)
+            {
+                return;
+            }
+      
             if (Frequency <= cycles)
             {
-                Frequency = (DivisiorCodes[DivisorCode] << ClockShift) / 2;
                 int bit0 = LFSR & 1;
                 int bit1 = (LFSR >> 1) & 1;
-
                 LFSR = LFSR >> 1;
                 LFSR |= ((bit0 ^ bit1) << 14);
                 LFSR &= 0x7FFF;
@@ -102,7 +98,7 @@ namespace pGameBoy
                     LFSR &= ~(1 << 6);
                     LFSR |= (bit0 ^ bit1) << 6;
                 }
-
+                Frequency = (DivisiorCodes[DivisorCode] << ClockShift) / 2;
                 Sample = (LFSR & 1) != 0 ? 0 : StartingVolume;
                 if (!ChannelEnable) Sample = 0;
                 cycles = 0;
@@ -129,10 +125,8 @@ namespace pGameBoy
                 NR43 FF22 SSSS WDDD Clock shift, Width mode of LFSR, Divisor code
                 NR44 FF23 TL-- ---- Trigger, Length enable*/
 
-            cycles = 0;
             ChannelEnable = true;
             if (LengthLoad == 0) LengthLoad = 63;
-            LengthTick();
             EnvelopePeriod = (byte)(Reg2 & 0x7);
             Envelope_enabled = true;
             StartingVolume = (byte)(Reg2 >> 4);

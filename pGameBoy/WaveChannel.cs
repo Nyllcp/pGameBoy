@@ -71,20 +71,13 @@ namespace pGameBoy
         }
         public void LengthTick()
         {
-            if (LengthLoad == 0)
-            {
-                ChannelEnable = false;
-                return;
-            }
-            if (LengthEnable)
+            if (LengthLoad != 0 && LengthEnable)
             {
                 LengthLoad--;
                 if (LengthLoad == 0)
                 {
                     ChannelEnable = false;
                 }
-
-
             }
         }
 
@@ -103,7 +96,6 @@ namespace pGameBoy
             ChannelEnable = true;
             //cycles = 0;
             if (LengthLoad == 0) LengthLoad = 255;
-            LengthTick();
             int value = (Reg4 << 8) | Reg3;
             value &= 0x7FF;
             Frequency = (2048 - value);

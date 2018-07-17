@@ -249,7 +249,16 @@ namespace pGameBoy
             if (address < 0x2000)
             {
                 if (cartRam)
+                {
                     enableCartRAM = (data & 0xF) == 0xA ? true : false;
+                    if((data & 0xF) != 0xA)
+                    {
+                        enableCartRAM = false;
+                        //WriteSaveFile();
+                    }
+                }
+                    
+               
             }
             else if (address < 0x4000)
             {
@@ -358,7 +367,7 @@ namespace pGameBoy
                 }
                 else if (cartRam)
                 {
-                    return saveRAM[address & 0x1FFF + ramOffset];
+                    return saveRAM[(address & 0x1FFF) + ramOffset];
                 }
                 else if (cartBattery)
                 {
@@ -373,7 +382,7 @@ namespace pGameBoy
             {
                 if (cartRam)
                 {
-                    saveRAM[address & 0x1FFF + ramOffset] = data;
+                    saveRAM[(address & 0x1FFF) + ramOffset] = data;
                 }
                 else if (cartBattery)
                 {

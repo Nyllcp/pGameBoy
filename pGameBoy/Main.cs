@@ -34,6 +34,7 @@ namespace pGameBoy
         private int frames;
         private int keyData;
         private int keyDataLast;
+        private int fastforwardCounter;
 
         private bool frameLimit = true;
         private bool frameLimitToggle = false;
@@ -76,7 +77,7 @@ namespace pGameBoy
 
         private void Main_Load(object sender, EventArgs e)
         {
-            InitSFML();
+
             _ofd = new OpenFileDialog();
             //ofd.InitialDirectory = Environment.CurrentDirectory;
             _ofd.Filter = "Supported files (*.gb *.gbc *.zip)|*.gb;*.gbc;*.zip|All files (*.*)|*.*";
@@ -84,35 +85,30 @@ namespace pGameBoy
             _ofd.RestoreDirectory = true;
             toolStripStatusFps.Text = "FPS: " + frames.ToString() + " Selected Save State : " + 0;
 
+            _drawingSurface = new DrawingSurface();
+            _drawingSurface.Size = new System.Drawing.Size(gbWidth * 5, gbHeigth * 5);
+            _drawingSurface.ContextMenuStrip = rightClickMenu;
+            this.ClientSize = new Size(_drawingSurface.Right, _drawingSurface.Bottom + menuStrip.Height + statusStrip.Height);
+            Controls.Add(_drawingSurface);
+            _drawingSurface.Location = new System.Drawing.Point(0, menuStrip.Height);
+
+            InitSFML();
         }
 
         private void InitSFML()
         {
             _clock = new Clock();
             _audio = new Audio();
-
-            _drawingSurface = new DrawingSurface();
-            _drawingSurface.Size = new System.Drawing.Size(gbWidth * 5, gbHeigth * 5);
-
-            this.ClientSize = new Size(_drawingSurface.Right, _drawingSurface.Bottom + menuStrip.Height + statusStrip.Height);
-            Controls.Add(_drawingSurface);
-            _drawingSurface.Location = new System.Drawing.Point(0, menuStrip.Height);
-
             _texture = new Texture(gbWidth, gbHeigth);
             _texture.Smooth = false;
-
             _sprite = new Sprite(_texture);
             _sprite.Scale = new Vector2f(5f, 5f);
-
             _window = new RenderWindow(_drawingSurface.Handle);
             _window.SetFramerateLimit(0);
-
             _texture.Update(_frame);
             _window.Clear();
             _window.Draw(_sprite);
             _window.Display();
-
-            _drawingSurface.ContextMenuStrip = rightClickMenu;
 
         }
 
@@ -131,19 +127,7 @@ namespace pGameBoy
 
         }
 
-        public class DrawingSurface : System.Windows.Forms.Control
-        {
-            protected override void OnPaint(System.Windows.Forms.PaintEventArgs e)
-            {
-                // don't call base.OnPaint(e) to prevent forground painting
-                // base.OnPaint(e);
-            }
-            protected override void OnPaintBackground(System.Windows.Forms.PaintEventArgs pevent)
-            {
-                // don't call base.OnPaintBackground(e) to prevent background painting
-                //base.OnPaintBackground(pevent);
-            }
-        }
+
 
         private void exitToolStripMenuItem_Click(object sender, EventArgs e)
         {
@@ -193,19 +177,29 @@ namespace pGameBoy
                 _texture.Update(_frame);
                 _window.Clear();
                 _window.Draw(_sprite);
-                _audio.AddSample(_gameboy.GetSamples, _gameboy.NumberOfSamples, true);
+                
                 if(frameLimit)
                 {
+                    _audio.AddSample(_gameboy.GetSamples, _gameboy.NumberOfSamples, true);
                     while (_audio.GetBufferedBytes() > (((44100) / 60 * 2) * 4))
                     {
                         System.Threading.Thread.Sleep(1);
                         //Max 4 frames of audio lag, cant go lower probably cause of thread sleep beeing useless.
                     }
 
-                }               
+                }   
+                //else
+                //{
+                //    if(fastforwardCounter % 3 == 0) { _audio.AddSample(_gameboy.GetSamples, _gameboy.NumberOfSamples, true); }
+                //    while (_audio.GetBufferedBytes() > (((44100) / 60 * 2) * 4))
+                //    {
+                //        System.Threading.Thread.Sleep(1);
+                //        //Max 4 frames of audio lag, cant go lower probably cause of thread sleep beeing useless.
+                //    }
+                //}            
                 System.Windows.Forms.Application.DoEvents(); // handle form events
                 _window.DispatchEvents(); // handle SFML events - NOTE this is still required when SFML is hosted in another window
-                
+                fastforwardCounter++;
                 frames++;
                 curentTime = _clock.ElapsedTime.AsMilliseconds();
                 if (curentTime - lastTime > 1000)
@@ -314,7 +308,8 @@ namespace pGameBoy
 
         private void resetToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            _gameboy.Reset();
+            if (_gameboy != null)
+                _gameboy.Reset();
         }
 
         private void SetScaleClick(object sender, EventArgs e)
@@ -325,7 +320,8 @@ namespace pGameBoy
         private void SetSaveStateClick(object sender, EventArgs e)
         {
             ToolStripMenuItem value = sender as ToolStripMenuItem;
-            _gameboy.SelectedSavestate = int.Parse(value.Text.ToString()) - 1;
+            if (_gameboy != null)
+                _gameboy.SelectedSavestate = int.Parse(value.Text.ToString()) - 1;
         }
 
         private void Main_FormClosed(object sender, FormClosedEventArgs e)
@@ -337,12 +333,27 @@ namespace pGameBoy
         private void loadStateToolStripMenuItem_Click(object sender, EventArgs e)
         {
             if(_gameboy != null)
-            _gameboy.LoadState = true;
+                _gameboy.LoadState = true;
         }
 
         private void saveStateToolStripMenuItem1_Click(object sender, EventArgs e)
         {
-            _gameboy.SaveState = true;     
+            if (_gameboy != null)
+                _gameboy.SaveState = true;     
+        }
+
+        public class DrawingSurface : System.Windows.Forms.Control
+        {
+            protected override void OnPaint(System.Windows.Forms.PaintEventArgs e)
+            {
+                // don't call base.OnPaint(e) to prevent forground painting
+                // base.OnPaint(e);
+            }
+            protected override void OnPaintBackground(System.Windows.Forms.PaintEventArgs pevent)
+            {
+                // don't call base.OnPaintBackground(e) to prevent background painting
+                //base.OnPaintBackground(pevent);
+            }
         }
     }
 }
